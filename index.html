@@ -5,6 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Mini Le Bon Coin - Éditeur</title>
 
+  <style>
+    .login, .logout {
+      display: none;
+    }
+  </style>
+
   <script>
     let user = null;
 const spreadsheetId = "1sVCmgprkNQLroXlowU-Rp0PlUySAFZ331x3H5t3VT7A";
@@ -42,10 +48,18 @@ const spreadsheetId = "1sVCmgprkNQLroXlowU-Rp0PlUySAFZ331x3H5t3VT7A";
   </header>
 
   <main>
+
+    <h2 id="welcome" style="font-size: 2rem;"></h2>
+
     <!-- NOUVELLE SECTION : Mes annonces -->
     <h2>Mes annonces</h2>
-    <section id="mes-annonces">
+    <section id="mes-annonces" class="login">
       <!-- Le contenu est injecté via JS -->
+    </section>
+
+    <section class="logout">
+      Pour ajouter vos propres annonces, connectez-vous (c'est gratuit !).
+      <a id="loginBtn" href="sign-in.html">Se connecter</a> ou <a href="sign-up.html">créer un compte</a>
     </section>
 
     <h2>Dernières annonces</h2>
@@ -131,6 +145,8 @@ const spreadsheetId = "1sVCmgprkNQLroXlowU-Rp0PlUySAFZ331x3H5t3VT7A";
           <div>
             <h3>${escapeHtml(annonce.title || "Sans titre")}</h3>
             <p>${escapeHtml((annonce.description || "").slice(0, 200))}${(annonce.description && annonce.description.length>200) ? "…" : ""}</p>
+            <p>Proposé par : ${annonce.by}</p>
+            <p><a href="activity.html?src=${annonce.ID}" target="_blank">En savoir plus</a></p>
           </div>
           <p class="ville">${escapeHtml(annonce.city || "Lieu inconnu")}</p>
         </div>
@@ -324,7 +340,8 @@ const spreadsheetId = "1sVCmgprkNQLroXlowU-Rp0PlUySAFZ331x3H5t3VT7A";
           description: description,
           city: city,
           lat: geo ? geo.lat : "",
-          lon: geo ? geo.lon : ""
+          lon: geo ? geo.lon : "",
+          by: user.pseudo
         };
 
 
@@ -389,7 +406,8 @@ const spreadsheetId = "1sVCmgprkNQLroXlowU-Rp0PlUySAFZ331x3H5t3VT7A";
 
         const item = document.createElement("div");
         item.className = "poi";
-        item.innerHTML = `<h3>${escapeHtml(poi.title)}</h3><p>${escapeHtml(poi.city || "")}</p><p>${escapeHtml(poi.description || "")}</p>`;
+        item.innerHTML = `<h3>${escapeHtml(poi.title)}</h3><p>${escapeHtml(poi.city || "")}</p><p>${escapeHtml(poi.description || "")}</p><p>Proposé par : ${poi.by}</p><p>
+            <a href="activity.html?src=${poi.ID}" target="_blank">En savoir plus</a></p>`;
         item.addEventListener("click", () => {
           map.setView([lat, lon], 12);
           marker.openPopup();
@@ -417,6 +435,12 @@ const spreadsheetId = "1sVCmgprkNQLroXlowU-Rp0PlUySAFZ331x3H5t3VT7A";
   cookie_user = "gael.maignan@eivp-paris.fr";
     cookie_password = "1234";
     user = await getRowById(spreadsheetId, "users", cookie_user);
+    // Texte de bienvenue
+    const welcome_titre = document.getElementById("welcome");
+    welcome_titre.textContent = "Bonjour " + user.pseudo + " !";
+
+
+
 }
 
     // --- Vérification du cookie de connexion ---
@@ -435,9 +459,15 @@ const spreadsheetId = "1sVCmgprkNQLroXlowU-Rp0PlUySAFZ331x3H5t3VT7A";
         }
         else {
             console.log("Bonjour :", user);
+            // Texte de bienvenue
+            const welcome_titre = document.getElementById("welcome");
+            welcome_titre.textContent = "Bonjour " + user.pseudo + " !";
+
+
         }
     }
     else {
+
        console.log("Pas de Cookie de connexion !", user);
     }
 
@@ -474,6 +504,27 @@ const spreadsheetId = "1sVCmgprkNQLroXlowU-Rp0PlUySAFZ331x3H5t3VT7A";
       afficherDernieresAnnoncesFromData1();
       renderMesAnnoncesUI();
       initCarteFromData1();
+
+
+      // Affiche ou cache les sections selon la connexion
+function toggleLoginLogoutUI(user) {
+    const loginSections = document.querySelectorAll(".login");
+    const logoutSections = document.querySelectorAll(".logout");
+
+    if (user) {
+        // Utilisateur connecté
+        loginSections.forEach(el => el.style.display = "block");
+        logoutSections.forEach(el => el.style.display = "none");
+    } else {
+        // Utilisateur non connecté
+        loginSections.forEach(el => el.style.display = "none");
+        logoutSections.forEach(el => el.style.display = "block");
+    }
+}
+
+// Appel après vérification du cookie
+toggleLoginLogoutUI(user);
+
     });
 
     /***** Notes importantes pour la suite (non bloquant) *****
