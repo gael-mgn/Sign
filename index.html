@@ -1,20 +1,475 @@
-<script src="cookie.js"></script>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mini Le Bon Coin - Éditeur</title>
+
+  <script>
+    let user = null;
+const spreadsheetId = "1sVCmgprkNQLroXlowU-Rp0PlUySAFZ331x3H5t3VT7A";
+  </script>
+
+  <!-- Scripts -->
+  <script src="cookie.js"></script>
+
+  <script src="https://gael-mgn.github.io/js/read-and-edit-row.js"></script>
+
+  <!-- Feuilles de style externes -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+  <link rel="stylesheet" href="index.css">
+
+  <style>
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>Mini Le Bon Coin</h1>
+    <a id="loginBtn" href="sign-in.html">Connexion</a>
+  </header>
+
+  <main>
+    <!-- NOUVELLE SECTION : Mes annonces -->
+    <h2>Mes annonces</h2>
+    <section id="mes-annonces">
+      <!-- Le contenu est injecté via JS -->
+    </section>
+
+    <h2>Dernières annonces</h2>
+    <section id="dernieres-annonces"></section>
+
+    <h2>Toutes les annonces</h2>
+    <section class="carte-section">
+      <div id="map"></div>
+      <div id="sidebar"></div>
+    </section>
+  </main>
+
+  <!-- Modal formulaire (hidden by default) -->
+  <div id="modalBackdrop" class="modal-backdrop" role="dialog" aria-hidden="true">
+    <div class="modal" role="document">
+      <h3 id="modalTitle">Éditer une annonce</h3>
+      <div>
+        <label>Titre<input id="fieldTitle" type="text" /></label>
+        <label>Ville<input id="fieldCity" type="text" /></label>
+        <label>Description<textarea id="fieldDescription" rows="4"></textarea></label>
+        <div class="small-muted" id="geoStatus"></div>
+        <div class="actions">
+          <button class="btn secondary" id="cancelBtn">Annuler</button>
+          <button class="btn" id="saveBtn">Enregistrer</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts Leaflet -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
+  <!-- Script principal -->
+  <script>
+    // ids des annonces appartenant à l'utilisateur (séparés par ;)
+   
+
+    // tableaux globaux demandés
+    let data1 = []; // toutes les annonces (provenant de la feuille)
+    let data2 = []; // tableau secondaire dédié aux annonces de l'utilisateur (dupliquées)
+
+    // Helpers existants
+    function getAnnonceId(obj) {
+      return (obj.id ?? obj.ID ?? obj.Id ?? "").toString();
+    }
+
+    async function fetchSheetData() {
+      const spreadsheetId = "1sVCmgprkNQLroXlowU-Rp0PlUySAFZ331x3H5t3VT7A";
+      const sheetName = "posts";
+      const url = `https://script.google.com/macros/s/AKfycbwEZj9RKrO2c502VHhL8OaznlZJtHTLl_pOXRMeqOs0BOUaBEf-OGsGBBj-0_YNazBo/exec?spreadsheetId=${spreadsheetId}&sheetName=${sheetName}`;
+      try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error("Erreur lors de l'appel à la Web App Google");
+        return await response.json();
+      } catch (error) {
+        console.error("❌ Erreur fetchSheetData :", error);
+        return [];
+      }
+    }
+// --- VERSION ROBUSTE : buildData2FromData1 accepte une chaîne posts en second argument
+  function buildData2FromData1(allData, userPosts) {
+    // sécuriser l'accès : userPosts peut être undefined/null
+    const annonces_ID = (typeof userPosts === "string") ? userPosts : ((user && typeof user.posts === "string") ? user.posts : "");
+    if (!annonces_ID) return []; // pas d'annonces -> retourne tableau vide
+
+    const wantedIds = annonces_ID.split(";").map(s => s.trim()).filter(Boolean);
+    if (!wantedIds.length) return [];
+
+    const duplicates = allData
+      .filter(item => {
+        const id = getAnnonceId(item);
+        return id && wantedIds.includes(id);
+      })
+      .map(item => JSON.parse(JSON.stringify(item))); // clone profond pour ne pas affecter data1
+    return duplicates;
+  }
+
+    // affichage des 3 dernières (utilise data1)
+    function creerCarteAnnonce(annonce) {
+      return `
+        <div class="annonce-card">
+          <div>
+            <h3>${escapeHtml(annonce.title || "Sans titre")}</h3>
+            <p>${escapeHtml((annonce.description || "").slice(0, 200))}${(annonce.description && annonce.description.length>200) ? "…" : ""}</p>
+          </div>
+          <p class="ville">${escapeHtml(annonce.city || "Lieu inconnu")}</p>
+        </div>
+      `;
+    }
+
+    // échappement basique pour éviter l'injection HTML
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+    }
+
+    function afficherDernieresAnnoncesFromData1() {
+      if (!data1.length) return;
+      const section = document.querySelector("#dernieres-annonces");
+      const dernieres = data1.slice(-3).reverse();
+      section.innerHTML = `<div class="annonces-container">${dernieres.map(creerCarteAnnonce).join("")}</div>`;
+    }
+
+    // ---------- ÉDITEUR (travaille uniquement sur data2) ----------
+    const mesSection = document.getElementById("mes-annonces");
+    // Modal éléments
+    const modalBackdrop = document.getElementById("modalBackdrop");
+    const modalTitle = document.getElementById("modalTitle");
+    const fieldTitle = document.getElementById("fieldTitle");
+    const fieldCity = document.getElementById("fieldCity");
+    const fieldDescription = document.getElementById("fieldDescription");
+    const geoStatus = document.getElementById("geoStatus");
+    const saveBtn = document.getElementById("saveBtn");
+    const cancelBtn = document.getElementById("cancelBtn");
+
+    let currentEditIndex = null; // index dans data2, null = création
+
+    // Génération d'ID : date+heure (ms) + nombre aléatoire 4 chiffres
+    function generateUniqueId() {
+      const base = Date.now();
+      const rand = Math.floor(Math.random() * 9000) + 1000; // 1000-9999
+      return "post"+base+rand;
+    }
+
+    // Géocodage simple via Nominatim (OpenStreetMap) : retourne {lat, lon} ou null
+    async function geocodeCity(city) {
+      if (!city || !city.trim()) return null;
+      const q = encodeURIComponent(city + ", France"); // tu peux enlever ", France" si multi-pays
+      const url = `https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1`;
+      try {
+        const resp = await fetch(url, {
+          headers: {
+            // Nominatim demande un User-Agent clairement identifiable, mais le navigateur envoie déjà un UA.
+            // Optionnel : "Accept-Language": "fr"
+          }
+        });
+        if (!resp.ok) return null;
+        const arr = await resp.json();
+        if (!arr || arr.length === 0) return null;
+        return { lat: parseFloat(arr[0].lat), lon: parseFloat(arr[0].lon) };
+      } catch (e) {
+        console.warn("géocodage échoué", e);
+        return null;
+      }
+    }
+
+    function renderMesAnnoncesUI() {
+      // Header + bouton créer
+      const headerHTML = `
+        <div class="mes-controls">
+          <div><strong>Mes annonces (${data2.length})</strong></div>
+          <div>
+            <button id="createAnnonceBtn" class="btn">+ Créer une annonce</button>
+          </div>
+        </div>
+      `;
+      // list
+      let listHTML = "";
+      if (data2.length === 0) {
+        listHTML = `<p>Aucune annonce dans votre espace. Cliquez sur "Créer une annonce" pour en ajouter.</p>`;
+      } else {
+        listHTML = '<div class="annonces-container">';
+        data2.forEach((ann, idx) => {
+          listHTML += `
+            <div class="annonce-card">
+              <div>
+                <h3>${escapeHtml(ann.title || "Sans titre")}</h3>
+                <p>${escapeHtml((ann.description || "").slice(0,120))}${(ann.description && ann.description.length>120)?"…":""}</p>
+              </div>
+              <p class="ville">${escapeHtml(ann.city || "—")}</p>
+              <div class="annonce-actions">
+                <button class="btn secondary" data-action="edit" data-idx="${idx}">Modifier</button>
+                <button class="btn danger" data-action="delete" data-idx="${idx}">Supprimer</button>
+              </div>
+            </div>
+          `;
+        });
+        listHTML += '</div>';
+      }
+      mesSection.innerHTML = headerHTML + listHTML;
+
+      // bind events
+      const createBtn = document.getElementById("createAnnonceBtn");
+      if (createBtn) createBtn.addEventListener("click", () => openFormForCreate());
+
+      mesSection.querySelectorAll("[data-action]").forEach(btn => {
+        const idx = Number(btn.dataset.idx);
+        const action = btn.dataset.action;
+        btn.addEventListener("click", () => {
+          if (action === "edit") openFormForEdit(idx);
+          if (action === "delete") deleteAnnonce(idx);
+        });
+      });
+    }
+
+    function openModal() {
+      modalBackdrop.style.display = "flex";
+      modalBackdrop.setAttribute("aria-hidden", "false");
+    }
+    function closeModal() {
+      modalBackdrop.style.display = "none";
+      modalBackdrop.setAttribute("aria-hidden", "true");
+      geoStatus.textContent = "";
+    }
+
+    function openFormForCreate() {
+      currentEditIndex = null;
+      modalTitle.textContent = "Créer une nouvelle annonce";
+      fieldTitle.value = "";
+      fieldCity.value = "";
+      fieldDescription.value = "";
+      openModal();
+    }
+
+    function openFormForEdit(idx) {
+      const ann = data2[idx];
+      currentEditIndex = idx;
+      modalTitle.textContent = "Modifier l'annonce";
+      fieldTitle.value = ann.title || "";
+      fieldCity.value = ann.city || "";
+      fieldDescription.value = ann.description || "";
+      openModal();
+    }
+
+    async function deleteAnnonce(idx) {
+      const ann = data2[idx];
+      const id = getAnnonceId(ann) || "(sans id)";
+      if (!confirm(`Supprimer cette annonce ?\nLa suppression de \"${ann.title || "—"}\" sera définitive !`)) return;
+
+      deleteRow(spreadsheetId, "posts", id);
+
+      user.posts = user.posts
+  .split(";")          // coupe en tableau : ["char1", "char2", "char5"]
+  .filter(el => el !== id) // retire "char2"
+  .join(";");          // recrée la chaîne
+
+        console.log(user);
+        await updateRow(spreadsheetId, "users", user.email, user);
+
+      data2.splice(idx, 1);
+      renderMesAnnoncesUI();
+    }
+
+    // sauvegarde (création ou modification)
+    saveBtn.addEventListener("click", async () => {
+      const title = fieldTitle.value.trim();
+      const city = fieldCity.value.trim();
+      const description = fieldDescription.value.trim();
+
+      if (!title) { alert("Le titre est requis."); return; }
+
+      geoStatus.textContent = "Géolocalisation de la ville en cours…";
+      saveBtn.disabled = true;
+      cancelBtn.disabled = true;
+
+      let geo = await geocodeCity(city);
+      if (!geo) {
+        geoStatus.textContent = "Géocodage indisponible pour cette ville — latitude/longitude non renseignées.";
+      } else {
+        geoStatus.textContent = `Ville localisée : ${geo.lat.toFixed(5)}, ${geo.lon.toFixed(5)}.`;
+      }
 
 
-<script>
-// Au chargement de la page :
-document.addEventListener("DOMContentLoaded", () => {
+
+
+      if (currentEditIndex === null) {
+        // création
+        const newObj = {
+          // garder la structure minimale compatible avec data1
+          ID: generateUniqueId(),
+          title: title,
+          description: description,
+          city: city,
+          lat: geo ? geo.lat : "",
+          lon: geo ? geo.lon : ""
+        };
+
+
+        //getRowById(spreadsheetId, "users", cookie_user)
+        await addRow(spreadsheetId, "posts", newObj);
+        user.posts+=";"+newObj.ID;
+        console.log(user);
+        await updateRow(spreadsheetId, "users", user.email, user);
+
+
+
+        data2.push(newObj);
+      } else {
+        // modification
+        const ann = data2[currentEditIndex];
+        ann.title = title;
+        ann.city = city;
+        ann.description = description;
+        if (geo) { ann.lat = geo.lat; ann.lon = geo.lon; }
+
+        console.log("enregistrement de :", ann);
+        await updateRow(spreadsheetId, "posts", ann.ID, ann);
+      }
+
+      saveBtn.disabled = false;
+      cancelBtn.disabled = false;
+      closeModal();
+      renderMesAnnoncesUI();
+    });
+
+    cancelBtn.addEventListener("click", () => {
+      closeModal();
+    });
+
+    // close modal on backdrop click
+    modalBackdrop.addEventListener("click", (e) => {
+      if (e.target === modalBackdrop) closeModal();
+    });
+
+    // ---------- CARTE (utilise data1, comme avant) ----------
+    async function initCarteFromData1() {
+      if (!data1.length) return;
+      const map = L.map("map").setView([46.8, 2.5], 6);
+      L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+        attribution: '&copy; <a href="https://carto.com/">CARTO</a> | © OpenStreetMap contributors',
+        subdomains: "abcd",
+        maxZoom: 19
+      }).addTo(map);
+
+      const markersCluster = L.markerClusterGroup();
+      const sidebar = document.getElementById("sidebar");
+      sidebar.innerHTML = "";
+
+      for (const poi of data1) {
+        const lat = parseFloat(poi.lat);
+        const lon = parseFloat(poi.lon);
+        if (!lat || !lon) continue;
+        const marker = L.marker([lat, lon]).bindPopup(
+          `<strong>${escapeHtml(poi.title)}</strong><br>${escapeHtml(poi.description || "")}<br><em>${escapeHtml(poi.city || "")}</em>`
+        );
+        markersCluster.addLayer(marker);
+
+        const item = document.createElement("div");
+        item.className = "poi";
+        item.innerHTML = `<h3>${escapeHtml(poi.title)}</h3><p>${escapeHtml(poi.city || "")}</p><p>${escapeHtml(poi.description || "")}</p>`;
+        item.addEventListener("click", () => {
+          map.setView([lat, lon], 12);
+          marker.openPopup();
+        });
+        sidebar.appendChild(item);
+      }
+
+      map.addLayer(markersCluster);
+    }
+
+
+
+
+
+
+
+    // ---------- INITIALISATION GLOBALE ----------
+    document.addEventListener("DOMContentLoaded", async () => {
+
+
+    let cookie_user = "gael.maignan@eivp-paris.fr";
+    let cookie_password = "1234";
+
+    if (window.location.protocol === 'file:') {
+  cookie_user = "gael.maignan@eivp-paris.fr";
+    cookie_password = "1234";
+}
+
+    // --- Vérification du cookie de connexion ---
+    const loginBtn = document.getElementById("loginBtn");
+    
     const loginInfo = getLoginCookie();
-
     if (loginInfo) {
         console.log("✅ Cookie détecté :", loginInfo);
-        // → l’utilisateur est déjà connecté, redirection ou affichage de l'espace membre
-        // window.location.href = "/dashboard.html";
+        cookie_user = loginInfo.email;
+        cookie_password = loginInfo.code;
+    }
+    user = await getRowById(spreadsheetId, "users", cookie_user);
+
+    if(user["password"] != cookie_password){
+          user = null;
+            console.log("le mot de passe n'est plus à jour dans le cookie !");
+        }
+        else {
+            console.log("Bonjour :", user);
+        }
+
+/*
+    if (loginInfo || forceConnexion == true) {
+        console.log("✅ Cookie détecté :", loginInfo);
+
+        getRowById(spreadsheetId, "users", cookie_user)
+  .then(data => {
+
+        
+
+  })
+  .catch(err => console.error("Erreur :", err));
+        
+
+      
     } else {
         console.log("❌ Aucun cookie de connexion trouvé");
         // → renvoyer vers la page de login si nécessaire
         // window.location.href = "/login.html";
-    }
-});
+    }*/
 
-</script>
+
+      // 1) récupérer data1
+      const fetched = await fetchSheetData();
+      data1 = Array.isArray(fetched) ? fetched : [];
+
+      // 2) construire data2 juste après (dupliquer uniquement les annonces de l'utilisateur)
+      data2 = buildData2FromData1(data1);
+
+      // 3) afficher interfaces
+      afficherDernieresAnnoncesFromData1();
+      renderMesAnnoncesUI();
+      initCarteFromData1();
+    });
+
+    /***** Notes importantes pour la suite (non bloquant) *****
+     - Actuellement toutes les modifications / créations / suppressions se font uniquement côté client (data2).
+     - Si tu veux **persister** ces changements sur la feuille Google Sheets, il faut :
+       1) ajouter une WebApp Google Apps Script côté serveur qui accepte POST pour créer / update / delete,
+       2) appeler cette WebApp depuis le client (fetch POST).
+     - Si tu veux que la carte reflète les nouvelles annonces créées par l'utilisateur, il faut soit :
+       - écrire les annonces créées dans la feuille (persistence) puis recharger data1, soit
+       - étendre la carte pour accepter en plus data2 (actuellement je l'ai laissé isolé pour éviter d'interférer).
+    ***********************************************************/
+  </script>
+</body>
+</html>

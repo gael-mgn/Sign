@@ -1,0 +1,38 @@
+<script>
+async function fetchSheetData() {
+  const spreadsheetId = "1sVCmgprkNQLroXlowU-Rp0PlUySAFZ331x3H5t3VT7A";
+  const sheetName = "posts";
+
+  const url = `https://script.google.com/macros/s/AKfycbwEZj9RKrO2c502VHhL8OaznlZJtHTLl_pOXRMeqOs0BOUaBEf-OGsGBBj-0_YNazBo/exec?spreadsheetId=${spreadsheetId}&sheetName=${sheetName}`;
+
+  try {
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error("Erreur lors de l'appel à la Web App Google");
+    }
+
+    const data = await response.json();
+    console.log("✅ Données récupérées :", data);
+
+    // ⬇️ On renvoie le tableau pour pouvoir le réutiliser
+    return data;
+
+  } catch (error) {
+    console.error("❌ Erreur fetchSheetData :", error);
+    return null;
+  }
+}
+
+// Exemple d'utilisation :
+(async () => {
+  const data = await fetchSheetData();
+
+  if (data) {
+    // Tu peux maintenant utiliser 'data' ici
+    console.log("Nombre de lignes :", data.length);
+    // Par exemple, afficher le premier élément :
+    console.log("Première ligne :", data[0]);
+  }
+})();
+</script>
