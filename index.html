@@ -5,12 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Mini Le Bon Coin - Éditeur</title>
 
-  <style>
-    .login, .logout {
-      display: none;
-    }
-  </style>
-
   <script>
     let user = null;
 const spreadsheetId = "1sVCmgprkNQLroXlowU-Rp0PlUySAFZ331x3H5t3VT7A";
@@ -48,6 +42,12 @@ const spreadsheetId = "1sVCmgprkNQLroXlowU-Rp0PlUySAFZ331x3H5t3VT7A";
   </header>
 
   <main>
+
+    <style>
+      .login, .logout {
+        display: none;
+      }
+    </style>
 
     <h2 id="welcome" style="font-size: 2rem;"></h2>
 
@@ -428,17 +428,24 @@ const spreadsheetId = "1sVCmgprkNQLroXlowU-Rp0PlUySAFZ331x3H5t3VT7A";
     document.addEventListener("DOMContentLoaded", async () => {
 
 
+
     let cookie_user = "";
     let cookie_password = "";
 
     if (window.location.protocol === 'file:') {
+      
   cookie_user = "gael.maignan@eivp-paris.fr";
     cookie_password = "1234";
     user = await getRowById(spreadsheetId, "users", cookie_user);
-    // Texte de bienvenue
     const welcome_titre = document.getElementById("welcome");
     welcome_titre.textContent = "Bonjour " + user.pseudo + " !";
 
+    document.querySelectorAll('.logout').forEach(el => {
+  el.style.display = 'none';
+});
+
+            document.querySelectorAll('.login').forEach(el => {
+  el.style.display = 'block';});
 
 
 }
@@ -463,11 +470,16 @@ const spreadsheetId = "1sVCmgprkNQLroXlowU-Rp0PlUySAFZ331x3H5t3VT7A";
             const welcome_titre = document.getElementById("welcome");
             welcome_titre.textContent = "Bonjour " + user.pseudo + " !";
 
+            document.querySelectorAll('.login').forEach(el => {
+  el.style.display = 'block';});
 
+            document.querySelectorAll('.logout').forEach(el => {
+  el.style.display = 'none';});
         }
     }
-    else {
-
+    else if(user ==null) {
+      document.querySelectorAll('.logout').forEach(el => {
+  el.style.display = 'block';});
        console.log("Pas de Cookie de connexion !", user);
     }
 
@@ -503,28 +515,7 @@ const spreadsheetId = "1sVCmgprkNQLroXlowU-Rp0PlUySAFZ331x3H5t3VT7A";
       // 3) afficher interfaces
       afficherDernieresAnnoncesFromData1();
       renderMesAnnoncesUI();
-
-      // Affiche ou cache les sections selon la connexion
-function toggleLoginLogoutUI(user) {
-    const loginSections = document.querySelectorAll(".login");
-    const logoutSections = document.querySelectorAll(".logout");
-
-    if (user) {
-        // Utilisateur connecté
-        loginSections.forEach(el => el.style.display = "block");
-        logoutSections.forEach(el => el.style.display = "none");
-    } else {
-        // Utilisateur non connecté
-        loginSections.forEach(el => el.style.display = "none");
-        logoutSections.forEach(el => el.style.display = "block");
-    }
-}
-
-// Appel après vérification du cookie
-toggleLoginLogoutUI(user);
-
       initCarteFromData1();
-
     });
 
     /***** Notes importantes pour la suite (non bloquant) *****
