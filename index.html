@@ -503,8 +503,6 @@ const spreadsheetId = "1sVCmgprkNQLroXlowU-Rp0PlUySAFZ331x3H5t3VT7A";
       // 3) afficher interfaces
       afficherDernieresAnnoncesFromData1();
       renderMesAnnoncesUI();
-      initCarteFromData1();
-
 
       // Affiche ou cache les sections selon la connexion
 function toggleLoginLogoutUI(user) {
@@ -524,6 +522,8 @@ function toggleLoginLogoutUI(user) {
 
 // Appel après vérification du cookie
 toggleLoginLogoutUI(user);
+
+      initCarteFromData1();
 
     });
 
