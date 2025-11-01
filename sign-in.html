@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connexion</title>
+
+  <script src="cookie.js"></script>
+  <script src="https://gael-mgn.github.io/js/get-row-data.js"></script>
+
+  <link rel="stylesheet" href="styles.css">
+
+</head>
+<body>
+
+  <div class="login-container">
+    <h2>Connexion</h2>
+
+    <form id="loginForm" action="#" method="post">
+      <div class="input-group">
+        <label for="email">Adresse e-mail</label>
+        <input type="email" id="email" name="email" placeholder="Entrez votre email" required>
+      </div>
+
+      <div class="input-group">
+        <label for="password">Mot de passe</label>
+        <input type="password" id="password" name="password" placeholder="Entrez votre mot de passe" required>
+      </div>
+
+      <button type="submit" class="btn" id="loginBtn">Se connecter</button>
+
+      <div class="signup-link">
+        Pas encore de compte ? <a href="sign-up.html">Inscrivez-vous</a>
+      </div>
+
+      <div id="error-message" class="error-message"></div>
+    </form>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      const form = document.getElementById("loginForm");
+      const errorMessage = document.getElementById("error-message");
+      const loginBtn = document.getElementById("loginBtn");
+
+      form.addEventListener("submit", function(event) {
+        event.preventDefault();
+        errorMessage.textContent = "";
+        errorMessage.style.color = "red";
+
+        const email = document.getElementById("email").value.trim();
+        const password = document.getElementById("password").value.trim();
+
+        if (email === "" || password === "") {
+          errorMessage.textContent = "Veuillez remplir tous les champs.";
+          return;
+        }
+
+        loginBtn.classList.add("loading");
+        loginBtn.disabled = true;
+        loginBtn.textContent = "Vérification...";
+
+        const spreadsheetId = "1sVCmgprkNQLroXlowU-Rp0PlUySAFZ331x3H5t3VT7A";
+        const sheetName = "users";
+
+        getRowData(spreadsheetId, sheetName, email)
+          .then(data => {
+            loginBtn.classList.remove("loading");
+            loginBtn.disabled = false;
+            loginBtn.textContent = "Se connecter";
+
+            if (data["error"] == "ID introuvable") {
+              errorMessage.textContent = "Aucun compte avec cette adresse e-mail n'existe.";
+              return;
+            }
+
+            if (data["password"] != password) {
+              errorMessage.textContent = "Mot de passe incorrect.";
+              return;
+            }
+
+            errorMessage.style.color = "green";
+            errorMessage.textContent = "Connexion réussie ! ✅";
+
+            setLoginCookie(email, password);
+
+            setTimeout(() => {
+        window.location.href = "index.html";
+      }, 1500);
+          })
+          .catch(err => {
+            console.error("Erreur :", err);
+            loginBtn.classList.remove("loading");
+            loginBtn.disabled = false;
+            loginBtn.textContent = "Se connecter";
+            errorMessage.textContent = "Une erreur est survenue lors de la connexion.";
+          });
+      });
+    });
+  </script>
+</body>
+</html>

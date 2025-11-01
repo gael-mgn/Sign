@@ -1,0 +1,20 @@
+<script src="cookie.js"></script>
+
+
+<script>
+// Au chargement de la page :
+document.addEventListener("DOMContentLoaded", () => {
+    const loginInfo = getLoginCookie();
+
+    if (loginInfo) {
+        console.log("✅ Cookie détecté :", loginInfo);
+        // → l’utilisateur est déjà connecté, redirection ou affichage de l'espace membre
+        // window.location.href = "/dashboard.html";
+    } else {
+        console.log("❌ Aucun cookie de connexion trouvé");
+        // → renvoyer vers la page de login si nécessaire
+        // window.location.href = "/login.html";
+    }
+});
+
+</script>

@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>S'inscrire</title>
+
+  <script src="cookie.js"></script>
+  <script src="https://gael-mgn.github.io/js/get-row-data.js"></script>
+  <!--<script src="https://gael-mgn.github.io/js/google-sheets.js"></script>-->
+
+  <link rel="stylesheet" href="styles.css">
+
+</head>
+<body>
+
+  <div class="login-container">
+    <h2>S'inscrire</h2>
+
+    <form id="loginForm" action="#" method="post">
+
+  <div id="step1">
+    <div class="input-group">
+      <label for="email">Adresse e-mail</label>
+      <input type="email" id="email" name="email" placeholder="Entrez votre email" required>
+    </div>
+
+    <div class="input-group">
+      <label for="pseudo">Nom d'utilisateur</label>
+      <input type="text" id="pseudo" name="pseudo" placeholder="Entrez votre pseudonyme" required>
+    </div>
+
+    <div class="input-group">
+      <label for="password">Mot de passe</label>
+      <input type="password" id="password" name="password" placeholder="Entrez votre mot de passe" required>
+    </div>
+
+    <button type="submit" class="btn" id="loginBtn">S'inscrire</button>
+  </div>
+
+  <!-- ÉTAPE 2 : VALIDATION DU CODE -->
+  <div id="step2" style="display: none;">
+    <p>Un code de vérification a été envoyé à <span id="emailDisplay"></span>.</p>
+    <br>
+    <div class="input-group">
+      <label for="verifCode">Code de vérification</label>
+      <input type="text" id="verifCode" name="verifCode" placeholder="Entrez le code reçu">
+    </div>
+
+    <button type="button" class="btn" id="verifyBtn">Vérifier le code</button>
+  </div>
+
+  <div id="error-message" class="error-message"></div>
+
+</form>
+
+  </div>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const form = document.getElementById("loginForm");
+  const errorMessage = document.getElementById("error-message");
+  const step1 = document.getElementById("step1");
+  const step2 = document.getElementById("step2");
+  const emailDisplay = document.getElementById("emailDisplay");
+  const verifyBtn = document.getElementById("verifyBtn");
+  const loginBtn = document.getElementById("loginBtn");
+
+  const spreadsheetId = "1sVCmgprkNQLroXlowU-Rp0PlUySAFZ331x3H5t3VT7A";
+  const sheetName = "users";
+
+  let generatedCode = null;
+  let storedEmail = "";
+  let storedPseudo = "";
+  let storedPassword = "";
+
+  const proxy = "https://cors-anywhere-t7kn.onrender.com/";
+  const scriptURL = "https://script.google.com/macros/s/AKfycbxAtgvo9TZxt9aLS23SKTw0UPzdQ-JjsOT7uXXM4FlY7MYyJx66dngaBYgxmWfEvGgs/exec";
+
+
+  /** ✉️ Envoi du mail de vérification */
+  async function sendVerificationCode(email) {
+    const prefix = email.substring(0, 4).toUpperCase();
+    let sum = 0;
+    for (let i = 0; i < prefix.length; i++) sum += prefix.charCodeAt(i);
+    generatedCode = (sum % 10000).toString().padStart(4, "0");
+
+    try {
+      await fetch(proxy + scriptURL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email,
+          subject: "Votre code de vérification",
+          message: `<p>Bonjour,<br>Votre code de vérification est : <b>${generatedCode}</b></p>`
+        })
+      });
+      return true;
+    } catch (err) {
+      console.error("Erreur d'envoi du mail", err);
+      return false;
+    }
+  }
+
+
+  /** 📌 Étape 1 : Soumission du formulaire */
+  form.addEventListener("submit", async function (event) {
+    event.preventDefault();
+    errorMessage.textContent = "";
+
+    storedEmail = document.getElementById("email").value.trim();
+    storedPseudo = document.getElementById("pseudo").value.trim();
+    storedPassword = document.getElementById("password").value.trim();
+
+    if (!storedEmail || !storedPassword || !storedPseudo) {
+      errorMessage.textContent = "Veuillez remplir tous les champs.";
+      return;
+    }
+
+    loginBtn.textContent = "Vérification...";
+    loginBtn.disabled = true;
+
+    getRowData(spreadsheetId, sheetName, storedEmail)
+      .then(async data => {
+        if (data["error"] !== "ID introuvable") {
+          errorMessage.textContent =
+            "Un compte existe déjà avec cette adresse email.";
+          loginBtn.disabled = false;
+          loginBtn.textContent = "S'inscrire";
+          return;
+        }
+
+        loginBtn.textContent = "Envoi du code...";
+        const sent = await sendVerificationCode(storedEmail);
+
+        if (!sent) {
+          errorMessage.textContent = "Erreur lors de l'envoi du code.";
+          loginBtn.disabled = false;
+          loginBtn.textContent = "S'inscrire";
+          return;
+        }
+
+        emailDisplay.textContent = storedEmail;
+        loginBtn.textContent = "Code envoyé ✅";
+
+        step1.style.display = "none";
+        step2.style.display = "block";
+      })
+      .catch(err => {
+        console.error("Erreur :", err);
+        errorMessage.textContent = "Erreur lors de l'inscription.";
+      });
+  });
+
+
+  /** ✅ Étape 2 : Vérification du code + inscription */
+  verifyBtn.addEventListener("click", async () => {
+    const userCode = document.getElementById("verifCode").value.trim();
+
+    if (!userCode) return;
+
+    verifyBtn.textContent = "Vérification...";
+    verifyBtn.disabled = true;
+    errorMessage.textContent = "";
+
+    if (userCode !== generatedCode) {
+      verifyBtn.disabled = false;
+      verifyBtn.textContent = "Vérifier le code";
+      errorMessage.textContent = "Code incorrect ❌";
+      errorMessage.style.color = "red";
+      return;
+    }
+
+    errorMessage.textContent = "Code correct ✅";
+    errorMessage.style.color = "green";
+    verifyBtn.textContent = "Création du compte...";
+
+    // Enregistrement dans Google Sheets
+    const url = "https://script.google.com/macros/s/AKfycbz8sFpqwdeg5_Z_6An_YfraycaXmJ3cFivhDo6SliP8cYBd7JfL2Lk1BXck1Tjeoyo/exec";
+
+    const data = {
+      spreadsheetId: spreadsheetId,
+      sheetName: sheetName,
+      values: [storedEmail, storedPseudo, storedPassword],
+      addDate: false
+    };
+
+    try {
+      await fetch(url, {
+        method: "POST",
+        body: new URLSearchParams({ data: JSON.stringify(data) })
+      });
+
+      verifyBtn.textContent = "Compte créé ✅";
+      errorMessage.textContent = "Inscription confirmée ✅";
+      errorMessage.style.color = "green";
+
+      setLoginCookie(storedEmail, storedPseudo);
+
+
+      setTimeout(() => {
+        window.location.href = "index.html";
+      }, 1500);
+
+    } catch (err) {
+      console.error("Erreur :", err);
+      verifyBtn.disabled = false;
+      verifyBtn.textContent = "Vérifier le code";
+      errorMessage.textContent = "⚠️ Erreur lors de la création du compte.";
+      errorMessage.style.color = "red";
+    }
+  });
+});
+</script>
+
+
+
+</body>
+</html>
