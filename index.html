@@ -416,6 +416,7 @@ const spreadsheetId = "1sVCmgprkNQLroXlowU-Rp0PlUySAFZ331x3H5t3VT7A";
     if (window.location.protocol === 'file:') {
   cookie_user = "gael.maignan@eivp-paris.fr";
     cookie_password = "1234";
+    user = await getRowById(spreadsheetId, "users", cookie_user);
 }
 
     // --- Vérification du cookie de connexion ---
@@ -426,16 +427,20 @@ const spreadsheetId = "1sVCmgprkNQLroXlowU-Rp0PlUySAFZ331x3H5t3VT7A";
         console.log("✅ Cookie détecté :", loginInfo);
         cookie_user = loginInfo.email;
         cookie_password = loginInfo.code;
-    }
-    user = await getRowById(spreadsheetId, "users", cookie_user);
+        user = await getRowById(spreadsheetId, "users", cookie_user);
 
-    if(user["password"] != cookie_password){
+        if(user["password"] != cookie_password){
           user = null;
             console.log("le mot de passe n'est plus à jour dans le cookie !");
         }
         else {
             console.log("Bonjour :", user);
         }
+    }
+    else {
+       console.log("Pas de Cookie de connexion !", user);
+    }
+
 
 /*
     if (loginInfo || forceConnexion == true) {
