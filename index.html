@@ -133,10 +133,10 @@
   <header>
     <div class="header-top">
       <div class="brand">
-        <div class="logo">PA</div>
+        <div class="logo"></div>
         <div>
           <div style="font-size:16px">Petites Annonces</div>
-          <div style="font-size:12px;color:var(--muted)">Prototype</div>
+          <div style="font-size:12px;color:var(--muted)"></div>
         </div>
       </div>
 
@@ -234,9 +234,7 @@
     <div id="map" style="width:100%;height:380px;border-radius:12px;overflow:hidden;box-shadow:var(--shadow)"></div>
     <div style="background:var(--card);padding:18px;border-radius:12px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:10px">
       <h3 style="margin:0">À propos de ce projet</h3>
-      <p style="font-size:14px;color:var(--muted)">Ce prototype démontre un système d’annonces géolocalisées permettant d’explorer des biens à proximité. L’objectif est de proposer une plateforme moderne, intuitive et transparente.</p>
-      <p style="font-size:14px;color:var(--muted)">Les annonces sont affichées sur une carte interactive alimentée par OpenStreetMap et Leaflet. Cliquez sur un marqueur pour voir le détail !</p>
-      <p><a href="sign-in.html?redirect=index.html">Connectez-vous</a> ou <a href="sign-up.html?redirect=index.html">inscrivez-vous</a> pour publier une annonce !</p>
+      <p style="font-size:14px;color:var(--muted)">Ce prototype démontre un système d’annonces géolocalisées permettant d’explorer des biens et des services à proximité.</p>
     </div>
   </section>
 
@@ -353,7 +351,7 @@
         console.log("✅ Cookie détecté :", loginInfo);
         cookie_user = loginInfo.email;
         cookie_password = loginInfo.code;
-        openPageLoader("Connexion en cours");
+        openPageLoader("Connexion en cours...");
         user = await getRowById(spreadsheetId, "users", cookie_user);
 
         if(user["password"] != cookie_password){
@@ -366,7 +364,7 @@
         }
     }else if (window.location.protocol === 'file:' && localLogin == true) {
 
-      openPageLoader("Connexion en cours");
+      openPageLoader("Connexion en cours...");
       
   cookie_user = "gael.maignan@eivp-paris.fr";
   try {

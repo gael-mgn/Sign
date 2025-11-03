@@ -190,6 +190,7 @@ const images = {
         console.log("✅ Cookie détecté :", loginInfo);
         cookie_user = loginInfo.email;
         cookie_password = loginInfo.code;
+        openPageLoader("Connexion en cours...");
         user = await getRowById(spreadsheetId, "users", cookie_user);
 
         if(user["password"] != cookie_password){
@@ -217,11 +218,11 @@ const images = {
   }
 
   if(user){
-
+    closePageLoader();
     console.log("Utilisateur:",user);
 
 
-    
+
 
     // helpers for the global loader + skeleton
     function showGlobalLoading(message = 'Chargement…'){
