@@ -497,12 +497,18 @@
         cookie_user = loginInfo.email;
         cookie_password = loginInfo.code;
         openPageLoader("Connexion en cours...");
-        user = await getRowById(spreadsheetId, "users", cookie_user);
+        try {
+          user = await getRowById(spreadsheetId, "users", cookie_user);
+        }catch (error) {
+          console.error("Erreur lors de la récupération :", error);
+          location.reload();
+        }
 
         if(user["password"] != cookie_password){
           user = null;
           console.log("le mot de passe n'est plus à jour dans le cookie !");
           clearLoginCookie(); // Supression du cookie
+          location.reload();
         }
       } else if (window.location.protocol === 'file:' && localLogin == true) {
 
