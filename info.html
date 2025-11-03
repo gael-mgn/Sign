@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Évènement</title>
+    <script src="https://gael-mgn.github.io/js/read-and-edit-row.js"></script>
+      <script src="loader.js"></script>
+
+
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f6f7fb;
+      color: #333;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      color: #2c3e50;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    th, td {
+      padding: 12px 16px;
+      text-align: left;
+    }
+
+    th {
+      background-color: #FF6B00;
+      color: white;
+    }
+
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+
+    img {
+      width: 120px;
+      height: auto;
+      border-radius: 4px;
+    }
+
+    .contact {
+      font-weight: bold;
+      color: #2c3e50;
+    }
+
+    @media (max-width: 800px) {
+      table, thead, tbody, th, td, tr {
+        display: block;
+      }
+
+      th {
+        display: none;
+      }
+
+      td {
+        border-bottom: 1px solid #ddd;
+        padding: 10px;
+      }
+
+      td::before {
+        content: attr(data-label);
+        font-weight: bold;
+        display: block;
+        margin-bottom: 5px;
+        color: #555;
+      }
+
+      img {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <h1 id="title"></h1>
+  <table id="events-table">
+    <thead>
+      <tr>
+        <th>Image</th>
+        <th>Titre</th>
+        <th>Description</th>
+        <th>Catégorie</th>
+        <th>Date</th>
+        <th>Lieu</th>
+        <th>Contact</th>
+        <th>Coordonnées</th>
+        <th>Publié par</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+        const spreadsheetId = "1sVCmgprkNQLroXlowU-Rp0PlUySAFZ331x3H5t3VT7A";
+
+
+    async function Login() {
+
+openPageLoader("Récupération de l'annonce...");
+
+
+
+        // Récupère toute la chaîne de requête (ex : ?post=123&autre=ok)
+  const params = new URLSearchParams(window.location.search);
+
+  // Récupère la valeur du paramètre "post"
+  const postId = params.get('post');
+
+  // Affiche dans la console (ou tu peux l’utiliser comme tu veux)
+  console.log('Paramètre post =', postId);
+
+
+
+  post = await getRowById(spreadsheetId, "posts", postId);
+
+
+    // Exemple de données (tu peux en ajouter plusieurs dans le tableau)
+    const events = [
+      post
+    ];
+
+    const tbody = document.querySelector('#events-table tbody');
+
+    events.forEach(ev => {
+      document.getElementById("title").textContent = ev.title;
+      const tr = document.createElement('tr');
+
+      tr.innerHTML = `
+        <td data-label="Image"><img src="${ev.image}" alt="${ev.title}"></td>
+        <td data-label="Titre">${ev.title}</td>
+        <td data-label="Description">${ev.desc}</td>
+        <td data-label="Catégorie">${ev.category}</td>
+        <td data-label="Date">${new Date(ev.date).toLocaleString('fr-FR')}</td>
+        <td data-label="Lieu">${ev.location}</td>
+        <td data-label="Contact" class="contact">${ev.contact}</td>
+        <td data-label="Coordonnées">📍 ${ev.lat}, ${ev.lon}</td>
+        <td data-label="Publié par">${ev.by}</td>
+      `;
+
+      tbody.appendChild(tr);
+    });
+
+      closePageLoader();
+
+  }
+  Login();
+  </script>
+
+
+
+
+
+
+
+<style>
+    /* Mise en page de la section */
+    section {
+      padding-top: 1rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: #f5f5f5;
+      flex-direction: column;
+      text-align: center;
+    }
+
+
+    /* Style du bouton */
+    .btn-accueil {
+      background-color: #FF6B00;
+      color: white;
+      padding: 12px 25px;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background-color 0.3s ease;
+    }
+
+  </style>
+
+  <section>
+    <a href="index.html" class="btn-accueil">Retour à l'accueil</a>
+  </section>
+
+</body>
+</html>
