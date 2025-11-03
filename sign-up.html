@@ -36,6 +36,10 @@
     </div>
 
     <button type="submit" class="btn" id="loginBtn">S'inscrire</button>
+
+    <div class="signup-link">
+        Déjà un compte ? <a href="sign-in.html">Connectez-vous</a>
+      </div>
   </div>
 
   <!-- ÉTAPE 2 : VALIDATION DU CODE -->
@@ -196,10 +200,16 @@ document.addEventListener("DOMContentLoaded", function () {
 
       setLoginCookie(storedEmail, storedPassword);
 
-
+/*
       setTimeout(() => {
         window.location.href = "index.html";
-      }, 1500);
+      }, 1500);*/
+
+                  const redirect = new URLSearchParams(window.location.search).get("redirect");
+//if (redirect && redirect.startsWith("https://mon-site.com")) { (sécurisé)
+if (redirect) {
+  window.location.href = redirect; // Redirige vers la valeur passée en paramètre
+}
 
     } catch (err) {
       console.error("Erreur :", err);

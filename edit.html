@@ -1,0 +1,557 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Éditeur d'annonces</title>
+
+
+  <script>
+const spreadsheetId = "1sVCmgprkNQLroXlowU-Rp0PlUySAFZ331x3H5t3VT7A";
+const images = {
+  "Don":"https://www.euodia.fr/upload/image/images%20donation/don-gratuit.jpg",
+  "Évènement":"https://images.unsplash.com/photo-1527529482837-4698179dc6ce?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=80&w=1170"
+};
+
+  </script>
+
+  <script src="cookie.js"></script>
+
+  <script src="https://gael-mgn.github.io/js/read-and-edit-row.js"></script>
+  <script src="get-data.js"></script>
+
+  <script src="loader.js"></script>
+
+  <style>
+    :root{--bg:#f6f7f9;--card:#ffffff;--accent:#0b7;--muted:#6b7280;--danger:#e53e3e}
+    *{box-sizing:border-box;font-family:Inter, system-ui, Arial, sans-serif}
+    body{margin:0;background:var(--bg);color:#0b0b0b;padding:24px}
+    .container{max-width:1100px;margin:0 auto}
+    h1{margin:0 0 12px;font-size:20px}
+    .editor{display:grid;grid-template-columns:1fr 420px;gap:20px;align-items:start}
+    .annonces-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
+    .card{background:var(--card);border-radius:10px;box-shadow:0 6px 18px rgba(10,10,10,0.06);overflow:hidden;display:flex;flex-direction:column}
+    .card img{width:100%;height:140px;object-fit:cover}
+    .card-body{padding:12px;flex:1;display:flex;flex-direction:column}
+    .card-title{font-weight:600;margin:0 0 6px}
+    .meta{font-size:13px;color:var(--muted);margin-bottom:8px}
+    .card-row{display:flex;gap:8px;align-items:center}
+    .actions{display:flex;gap:8px;margin-top:10px}
+    .btn{background:#111;color:#fff;padding:6px 10px;border-radius:8px;border:0;cursor:pointer;font-size:13px}
+    .btn.ghost{background:transparent;color:var(--muted);border:1px solid rgba(0,0,0,0.06)}
+    .btn.warn{background:var(--danger)}
+    .panel{background:var(--card);padding:16px;border-radius:10px;box-shadow:0 6px 18px rgba(10,10,10,0.04)}
+    form{display:flex;flex-direction:column;gap:10px}
+    label{font-size:13px;color:var(--muted)}
+    input[type=text],input[type=number],input[type=date],textarea,select{width:100%;padding:8px;border-radius:8px;border:1px solid #e6e7eb;font-size:14px}
+    textarea{min-height:90px;resize:vertical}
+    .row{display:flex;gap:8px}
+    .row > *{flex:1}
+    .tools{display:flex;gap:8px;align-items:center;justify-content:space-between}
+    /* spinner */
+    .spinner { width:16px; height:16px; border:2px solid rgba(0,0,0,0.12); border-top-color:#111; border-radius:50%; display:inline-block; vertical-align:middle; margin-right:8px; animation:spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* global loading overlay */
+    .global-loader{ position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(11,11,11,0.45); z-index:1200 }
+    .global-loader .loader-box{ background:var(--card); padding:18px 22px; border-radius:12px; box-shadow:0 10px 40px rgba(2,6,23,0.6); display:flex; gap:12px; align-items:center }
+    .global-loader .loader-text{ font-size:15px; color:#111 }
+
+    /* skeleton cards */
+    .skeleton-card{ background:linear-gradient(90deg,#f2f3f5,#eceff2,#f2f3f5); border-radius:10px; height:220px; }
+    .skeleton-image{ height:140px; background:linear-gradient(90deg,#e9ebee,#f3f4f6); }
+    .skeleton-body{ padding:12px; }
+    .skeleton-line{ height:12px; background:#f0f1f3; margin-bottom:8px; border-radius:6px }
+
+    /* small screens */
+    @media (max-width:940px){ .editor{grid-template-columns:1fr} }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <a href="index.html" class="btn-retour">← Retour à l'accueil</a>
+<style>
+  .btn-retour {
+  display: inline-block;
+  background-color: #007bff;
+  color: white;
+  text-decoration: none;
+  padding: 12px 25px;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: background-color 0.3s ease;
+  margin-bottom: 1rem;
+}
+
+.btn-retour:hover {
+  background-color: #0056b3;
+}
+
+</style>
+
+    <h1>Éditeur d'annonces</h1>
+
+    <p style="margin:6px 0 18px;color:var(--muted)">Créez, modifiez ou supprimez des annonces. Les changements sont sauvegardés localement (localStorage).</p>
+
+    <div class="editor">
+      <div>
+        <div class="panel" style="margin-bottom:12px;display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap">
+          <div style="display:flex;gap:8px;align-items:center">
+            <input id="searchInput" type="text" placeholder="Recherche titre / lieu / description" style="padding:8px;border-radius:8px;border:1px solid #e6e7eb;width:360px;max-width:60vw">
+          </div>
+          <div style="display:flex;gap:8px">
+            <button id="newBtn" class="btn">Nouvelle annonce</button>
+          </div>
+        </div>
+
+        <div id="annoncesContainer" class="annonces-grid"></div>
+      </div>
+
+      <aside class="panel" id="monAncre">
+        <strong id="formTitle">Créer une annonce</strong>
+        <form id="annonceForm">
+          <input type="hidden" id="annonceId">
+
+          <div>
+            <label>Titre</label>
+            <input id="title" type="text" required>
+          </div>
+
+          <div class="row">
+            <div>
+              <label>Catégorie</label>
+              <select id="category" required>
+                <option value="">-- choisir --</option>
+                <option>Don</option>
+                <option>Évènement</option>
+                <option>Autre</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label>Lieu</label>
+            <input id="location" type="text" required>
+          </div>
+
+          <div class="row">
+            <div>
+              <label>Date</label>
+              <input id="date" type="date" required>
+            </div>
+          </div>
+
+          <div>
+            <label>Description</label>
+            <textarea id="desc"></textarea>
+          </div>
+
+          <div class="tools">
+            <div style="display:flex;gap:8px">
+              <!-- note : le texte du bouton sera remplacé dynamiquement pendant l'envoi -->
+              <button type="submit" class="btn" id="saveBtn">Enregistrer</button>
+              <button type="button" class="btn ghost" id="cancelBtn">Annuler</button>
+            </div>
+            <button type="button" id="deleteBtn" class="btn warn" style="display:none">Supprimer</button>
+          </div>
+
+          <!-- zone de statut pour messages (géolocalisation / erreurs / succès) -->
+          <div id="status" style="margin-top:8px;font-size:13px;color:var(--muted)" aria-live="polite"></div>
+        </form>
+      </aside>
+    </div>
+
+  </div>
+
+  <!-- global loading overlay -->
+  <div id="globalLoader" class="global-loader" aria-hidden="true" role="status" aria-live="polite">
+    <div class="loader-box" role="presentation">
+      <span class="spinner" aria-hidden="true"></span>
+      <div class="loader-text">Chargement…</div>
+    </div>
+  </div>
+
+  <script>
+
+
+    async function Login() {
+
+      console.log("Vérification de la connexion");
+
+    let cookie_user = "";
+    let cookie_password = "";
+
+    const localLogin = true;
+
+
+        const loginInfo = getLoginCookie();
+    if (loginInfo) {
+        console.log("✅ Cookie détecté :", loginInfo);
+        cookie_user = loginInfo.email;
+        cookie_password = loginInfo.code;
+        user = await getRowById(spreadsheetId, "users", cookie_user);
+
+        if(user["password"] != cookie_password){
+          user = null;
+            console.log("le mot de passe n'est plus à jour dans le cookie !");
+            clearLoginCookie(); // Supression du cookie
+        }
+        else {
+
+        }
+    }else if (window.location.protocol === 'file:' && localLogin == true) {
+
+      openPageLoader("Connexion en cours");
+      
+  cookie_user = "gael.maignan@eivp-paris.fr";
+  try {
+        user = await getRowById(spreadsheetId, "users", cookie_user);
+  }catch (error) {
+    console.error("Erreur lors de la récupération :", error);
+  } finally {
+    closePageLoader();
+    // 👉 Toujours exécuté, même si erreur
+  }
+
+  }
+
+  if(user){
+
+    console.log("Utilisateur:",user);
+
+
+    
+
+    // helpers for the global loader + skeleton
+    function showGlobalLoading(message = 'Chargement…'){
+      const el = document.getElementById('globalLoader');
+      if(!el) return;
+      el.querySelector('.loader-text').textContent = message;
+      el.style.display = 'flex';
+      el.setAttribute('aria-hidden','false');
+      document.body.style.overflow = 'hidden';
+    }
+    function hideGlobalLoading(){
+      const el = document.getElementById('globalLoader');
+      if(!el) return;
+      el.style.display = 'none';
+      el.setAttribute('aria-hidden','true');
+      document.body.style.overflow = '';
+    }
+    function showSkeleton(count = 6){
+      const container = document.getElementById('annoncesContainer');
+      if(!container) return;
+      container.innerHTML = '';
+      for(let i=0;i<count;i++){
+        const s = document.createElement('div'); s.className = 'skeleton-card';
+        s.innerHTML = '<div class="skeleton-image"></div><div class="skeleton-body"><div class="skeleton-line" style="width:60%"></div><div class="skeleton-line" style="width:40%"></div><div class="skeleton-line" style="width:90%"></div></div>';
+        container.appendChild(s);
+      }
+    }
+
+    async function afficherTableauHTML() {
+
+    // DOM references early so we can show skeleton while fetching
+    const annoncesContainer = document.getElementById('annoncesContainer');
+
+    // show global loader + skeleton placeholder
+    showGlobalLoading('Chargement des annonces…');
+    showSkeleton(6);
+
+    try {
+
+
+    // Récupération de toutes les annonces
+    const tableau = await fetchSheetData2();
+
+    // Récupération des annonces de l'utilisateur
+    let listeIDs = [];
+    if (user.posts) {
+      console.log("posts: ", user.posts);
+      listeIDs = user.posts.split(";");
+    }
+    let annonces = tableau.filter(a => listeIDs.includes(a.id));
+
+
+    // état
+    let editingId = null;
+
+    // DOM
+    const annonceForm = document.getElementById('annonceForm');
+    const formTitle = document.getElementById('formTitle');
+    const deleteBtn = document.getElementById('deleteBtn');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const newBtn = document.getElementById('newBtn');
+    const searchInput = document.getElementById('searchInput');
+    const statusEl = document.getElementById('status');
+
+    // inputs
+    const idInput = document.getElementById('annonceId');
+    const titleInput = document.getElementById('title');
+    const categoryInput = document.getElementById('category');
+    const locationInput = document.getElementById('location');
+    const dateInput = document.getElementById('date');
+    const descInput = document.getElementById('desc');
+    const saveBtn = document.getElementById('saveBtn');
+
+    // initial render
+    renderList();
+
+    function renderList(){
+      const q = searchInput.value.trim().toLowerCase();
+      const filtered = annonces.filter(a => {
+        const text = (a.title + ' ' + a.location + ' ' + (a.desc||'')).toLowerCase();
+        if(q && !text.includes(q)) return false;
+        return true;
+      }).sort((a,b)=> new Date(b.date) - new Date(a.date));
+
+      annoncesContainer.innerHTML = '';
+      if(!filtered.length){ annoncesContainer.innerHTML = '<div style="grid-column:1/-1;color:var(--muted)">Aucune annonce trouvée.</div>'; return }
+
+      filtered.forEach(a => {
+        const dateFr = new Date(a.date.replace(/\//g, '-')).toLocaleDateString('fr-FR');
+
+        const card = document.createElement('article');
+        card.className = 'card';
+        card.innerHTML = `
+          <img src="${a.image || 'https://picsum.photos/600/400'}" alt="${escapeHtml(a.title)}">
+          <div class="card-body">
+            <div class="card-row">
+              <div>
+                <div class="card-title">${escapeHtml(a.title)}</div>
+                <div class="meta">${escapeHtml(a.location)} · ${a.category} · ${dateFr}</div>
+              </div>
+            </div>
+            <div style="flex:1;color:var(--muted);font-size:13px;margin-top:8px">${escapeHtml(a.desc || '')}</div>
+            <div class="actions">
+              <button class="btn" data-action="edit" data-id="${a.id}">Modifier</button>
+              <button class="btn warn" data-action="delete" data-id="${a.id}">Supprimer</button>
+            </div>
+          </div>
+        `;
+        annoncesContainer.appendChild(card);
+      });
+    }
+
+    // actions liste
+    annoncesContainer.addEventListener('click', e => {
+      const btn = e.target.closest('button');
+      if(!btn) return;
+      const action = btn.dataset.action;
+      const id = btn.dataset.id;
+      if(action === 'edit') { openEdit(id); document.getElementById("monAncre").scrollIntoView({ behavior: "smooth" }); }
+      if(action === 'delete') { if(confirm('Supprimer cette annonce ?')) {
+        removeAnnonce(id); 
+      }}
+    });
+
+    // form handlers
+    annonceForm.addEventListener('submit', e => {
+      e.preventDefault();
+      saveAnnonceFromForm(); // async but we don't await here, function handles its own flow
+    });
+
+    cancelBtn.addEventListener('click', e => { resetForm(); });
+
+    newBtn.addEventListener('click', e => { resetForm(); titleInput.focus(); });
+
+    deleteBtn.addEventListener('click', () => {
+      if(editingId && confirm('Supprimer définitivement cette annonce ?')){
+        removeAnnonce(editingId);
+        resetForm();
+      }
+    });
+
+    searchInput.addEventListener('input', renderList);
+
+    function openEdit(id){
+      const a = annonces.find(x=>x.id===id); if(!a) return alert('Annonce introuvable');
+      const dateFr = new Date(a.date.replace(/\//g, '-')).toLocaleDateString('fr-FR');
+
+      const [day, month, year] = dateFr.split('/');
+const dateIso = `${year}-${month}-${day}`;
+console.log(dateFr);
+
+
+      editingId = id; idInput.value = a.id; titleInput.value = a.title; categoryInput.value = a.category || ''; locationInput.value = a.location; dateInput.value = dateIso; descInput.value = a.desc || '';
+      formTitle.textContent = 'Modifier l\'annonce'; deleteBtn.style.display = 'inline-block';
+      window.scrollTo({top:0,behavior:'smooth'});
+    }
+
+    function resetForm(){
+      editingId = null; annonceForm.reset(); idInput.value = ''; formTitle.textContent = 'Créer une annonce'; deleteBtn.style.display = 'none';
+      statusEl.textContent = '';
+      const today = new Date().toISOString().slice(0,10); dateInput.value = today;
+    }
+
+    // --- IMPORTANT: getCoordinates now has timeout + error handling ---
+    async function getCoordinates(cityName, timeoutMs = 8000) {
+      if(!cityName) return null;
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), timeoutMs);
+
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cityName)}`;
+      try {
+        const response = await fetch(url, {
+          // note: certains headers peuvent être ignorés par le navigateur, Nominatim attend un user-agent côté serveur.
+          signal: controller.signal
+        });
+        clearTimeout(id);
+        if(!response.ok) {
+          console.warn('Erreur Nominatim', response.status);
+          return null;
+        }
+        const data = await response.json();
+        if (data && data.length > 0) {
+          const { lat, lon } = data[0];
+          console.log(`Latitude: ${lat}, Longitude: ${lon}`);
+          return { lat, lon };
+        } else {
+          console.log("Ville introuvable");
+          return null;
+        }
+      } catch (err) {
+        clearTimeout(id);
+        if (err.name === 'AbortError') {
+          console.warn('Requête de géocodage annulée (timeout)');
+        } else {
+          console.warn('Erreur getCoordinates', err);
+        }
+        return null;
+      }
+    }
+
+    // active / désactive le formulaire et affiche un état visuel sur le bouton Enregistrer
+    function setLoading(isLoading, message = '') {
+      const controls = annonceForm.querySelectorAll('input,textarea,select,button');
+      controls.forEach(el => { el.disabled = isLoading; });
+      if(isLoading) {
+        saveBtn.innerHTML = '<span class="spinner" aria-hidden="true"></span>Enregistrement…';
+      } else {
+        saveBtn.innerHTML = 'Enregistrer';
+      }
+      statusEl.textContent = message;
+    }
+
+    // sauvegarde (corrigée pour attendre la géolocalisation)
+    async function saveAnnonceFromForm(){
+      // validation basique
+      const title = titleInput.value.trim();
+      const location = locationInput.value.trim();
+      if(!title || !location){ alert('Le titre et le lieu sont requis.'); return }
+
+      setLoading(true, 'Géolocalisation en cours…');
+
+      // essaie d'obtenir la coordonnée (si l'utilisateur a déjà rempli lat/lon on peut les garder)
+      let coord = null;
+      try {
+        coord = await getCoordinates(location);
+
+        setLoading(true, 'Envoi des données…');
+        //function sleep(ms) {return new Promise(resolve => setTimeout(resolve, ms));}
+        
+
+        //await sleep(5000); 
+        
+
+        const nouvelleAnnonce = !editingId;
+        if (nouvelleAnnonce){
+          editingId = generateId();
+        }
+
+        // assemble les données
+        const data = {
+          id: editingId,
+          title: title,
+          category: categoryInput.value || 'Autre',
+          location: location,
+          date: dateInput.value.replace(/-/g, '/'),
+          image: images[categoryInput.value || 'Autre'],
+          desc: descInput.value.trim(),
+          lat: coord.lat || 0,
+          lon: coord.lon || 0
+        };
+
+        if (nouvelleAnnonce){
+          await addRow(spreadsheetId, "posts", data);
+        }
+        else {
+          await updateRow(spreadsheetId, "posts", editingId, data);
+        }
+
+        setLoading(true, 'Sauvegarde du compte utilisateur…');
+
+        listeIDs.push(editingId);
+        await updateRow(spreadsheetId, "users", user.email, {posts:listeIDs.join(';')});
+
+        // opération de sauvegarde (locale pour l'instant)
+        try {
+          if(nouvelleAnnonce){
+            annonces.push(Object.assign({id:editingId}, data));
+            statusEl.textContent = 'Nouvelle annonce créée.';
+          } else {
+            const idx = annonces.findIndex(x=>x.id===editingId);
+            if(idx>-1){ annonces[idx] = Object.assign({id:editingId}, data); }
+            statusEl.textContent = 'Annonce mise à jour.';
+          }
+          renderList(); resetForm();
+        } catch (err) {
+          console.error('Erreur sauvegarde', err);
+          statusEl.textContent = 'Erreur lors de la sauvegarde.';
+        } finally {
+          // réactive le formulaire
+          setLoading(false, statusEl.textContent);
+        }
+        
+      } catch (err) {
+        console.error('Erreur lors de la récupération des coordonnées', err);
+        coord = null;
+      }
+
+    }
+
+    function removeAnnonce(id){
+      deleteRow(spreadsheetId, "posts", id);
+      listeIDs = listeIDs.filter(ids => ids !== id);
+      updateRow(spreadsheetId, "users", user.email, {posts:listeIDs.join(';')});
+
+      annonces = annonces.filter(a=>a.id!==id); renderList();
+    }
+
+    function generateId(){
+      const now = new Date().toISOString().replace(/[-:.TZ]/g, "");
+      const random = Math.floor(Math.random() * 100000).toString().padStart(5, '0');
+      return `${user.email}_${now}_${random}`;
+      //const listeIDs = user.posts.split(";");
+      //return user.email +"_"+ (listeIDs.length+1);
+    }
+
+
+    function escapeHtml(s){ if(!s && s!==0) return ''; return String(s).replace(/[&<>\"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[c])); }
+
+    (function init(){ const today = new Date().toISOString().slice(0,10); dateInput.value = today; })();
+
+    // hide the global loader now that everything is set up
+    hideGlobalLoading();
+
+    } catch (err) {
+      console.error('Erreur lors de l\'initialisation des annonces', err);
+      const container = document.getElementById('annoncesContainer');
+      if(container) container.innerHTML = '<div style="grid-column:1/-1;color:var(--muted)">Impossible de charger les annonces.</div>';
+      hideGlobalLoading();
+    }
+
+}
+
+afficherTableauHTML();
+  }
+
+
+}
+ Login();
+
+
+  </script>
+</body>
+</html>

@@ -1,459 +1,354 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mini Le Bon Coin - Éditeur</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Petites annonces — Exemple</title>
 
-  <script>
-    let user = null;
-const spreadsheetId = "1sVCmgprkNQLroXlowU-Rp0PlUySAFZ331x3H5t3VT7A";
-  </script>
-
-  <!-- Scripts -->
   <script src="cookie.js"></script>
 
   <script src="https://gael-mgn.github.io/js/read-and-edit-row.js"></script>
+  <script src="get-data.js"></script>
 
-  <!-- Feuilles de style externes -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
-  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
-  <link rel="stylesheet" href="index.css">
+  <script src="loader.js"></script>
+
+
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  ></script>
+
+    <!-- Leaflet CSS & JS (redondance volontaire / conservée du prototype original) -->
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+/>
+<script
+  src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+></script>
 
   <style>
+    :root{
+      --bg:#f5f6f8;
+      --card:#ffffff;
+      --accent:#ff6b00;
+      --muted:#6b7280;
+      --shadow: 0 6px 18px rgba(20,20,30,0.06);
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:#111}
+
+    /* Header: maintenant en deux lignes */
+    header{
+      background:linear-gradient(90deg,#ffffff, #fffaf5);
+      border-bottom:1px solid #e9e9ee;
+      position:sticky;top:0;z-index:40;
+      display:flex;flex-direction:column;gap:8px;padding:12px 20px;
+      box-shadow: 0 2px 6px rgba(15,15,20,0.02);
+      z-index: 1000;
+    }
+
+    .header-top{display:flex;align-items:center;gap:16px}
+    .header-actions{
+      display:flex;
+      justify-content:flex-end;
+      align-items:center;
+      gap:10px;
+      padding-top:4px;
+    }
+
+    .brand{display:flex;align-items:center;gap:12px;font-weight:700}
+    .logo{width:44px;height:44px;border-radius:8px;background:linear-gradient(135deg,var(--accent),#ff9b3c);display:inline-flex;align-items:center;justify-content:center;color:white;font-size:18px}
+    .searchbar{flex:1;display:flex;gap:10px;align-items:center}
+    input[type="search"]{flex:1;padding:12px 14px;border-radius:10px;border:1px solid #e6e7ee;background:white;outline:none}
+    select, button{padding:10px 12px;border-radius:10px;border:1px solid #e6e7ee;background:white}
+
+    /* Auth controls */
+    .auth-btn, .auth-link {
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 12px;
+      border-radius:10px;
+      border:1px solid transparent;
+      background:transparent;
+      cursor:pointer;
+      font-weight:600;
+    }
+    .auth-btn.primary {
+      background:var(--accent);
+      color:white;
+      border-color: rgba(0,0,0,0.03);
+      box-shadow: 0 6px 14px rgba(255,107,0,0.12);
+    }
+    .auth-btn.ghost {
+      background:transparent;
+      color:var(--muted);
+    }
+    .auth-link { color:var(--muted); text-decoration:none; padding:8px 10px; border-radius:8px; }
+    .auth-link:hover, .auth-btn:hover { transform: translateY(-1px); }
+
+    .wrap{max-width:1200px;margin:26px auto;padding:0 20px;display:grid;grid-template-columns:260px 1fr;gap:22px}
+
+    .sidebar{background:var(--card);padding:16px;border-radius:12px;box-shadow:var(--shadow)}
+    .filters h4{margin:0 0 10px 0;font-size:14px}
+    .categories{display:flex;flex-direction:column;gap:8px}
+    .cat{padding:8px 10px;border-radius:8px;cursor:pointer;border:1px solid transparent}
+    .cat:hover{background:#fffaf2;border-color:#ffe7cf}
+
+    .main{display:flex;flex-direction:column;gap:16px}
+    .tools{display:flex;gap:12px;align-items:center}
+    .count{color:var(--muted);font-size:14px}
+
+    .listings{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
+    .card{background:var(--card);border-radius:12px;overflow:hidden;box-shadow:var(--shadow);display:flex;flex-direction:column;transition:transform .12s,box-shadow .12s}
+    .card:hover{transform:translateY(-6px)}
+    .card img{width:100%;height:160px;object-fit:cover;display:block}
+    .card-body{padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+    .title{font-weight:600;font-size:15px}
+    .meta{font-size:13px;color:var(--muted);display:flex;justify-content:space-between}
+    .price{color:var(--accent);font-weight:700}
+
+    .badges{display:flex;gap:8px;flex-wrap:wrap}
+    .badge{font-size:12px;padding:6px 8px;border-radius:999px;background:#fff7f1;color:#b14800;border:1px solid #ffe7cf}
+
+    footer{max-width:1200px;margin:22px auto;padding:22px;text-align:center;color:var(--muted)}
+
+    /* Responsive */
+    @media (max-width:880px){
+      .wrap{grid-template-columns:1fr;}
+      .sidebar{order:2}
+      header{padding:10px}
+      .header-top{flex-direction:column;align-items:flex-start;gap:10px}
+      .header-actions{justify-content:flex-start}
+      .searchbar{width:100%}
+    }
   </style>
 </head>
-
 <body>
   <header>
-    <h1>Mini Le Bon Coin</h1>
-    <a id="loginBtn" href="sign-in.html">Connexion</a>
-    <a id="logoutBtn" href="">Se déconnecter</a>
+    <div class="header-top">
+      <div class="brand">
+        <div class="logo">PA</div>
+        <div>
+          <div style="font-size:16px">Petites Annonces</div>
+          <div style="font-size:12px;color:var(--muted)">Prototype</div>
+        </div>
+      </div>
 
-    <script>
-    // Quand on clique sur le bouton, on supprime le cookie
-    document.getElementById("logoutBtn").addEventListener("click", () => {
-        clearLoginCookie();
-        alert("Cookie supprimé !");
+      <div class="searchbar">
+        <input id="q" type="search" placeholder="Que recherchez-vous ? ex: vélo, canapé, appartement" />
+        <select id="categorySelect" aria-label="Catégorie">
+          <option value="">Toutes catégories</option>
+        </select>
+        <button id="searchBtn">Rechercher</button>
+      </div>
+    </div>
 
-    });
-</script>
+    <!-- LIGNE D'ACTIONS (Se connecter / S'inscrire) ou (Mes annonces / Se déconnecter) -->
+    <div class="header-actions" id="authActions">
+      <!-- contenu généré par JS -->
+    </div>
   </header>
 
-  <main>
+  <style>
+    /* --- SECTION --- */
+    .cta-section {
+      background: linear-gradient(135deg, #007bff, #00c6ff);
+      color: #fff;
+      text-align: center;
+      padding: 80px 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
 
-    <style>
-      .login, .logout {
-        display: none;
+    /* --- CONTENU --- */
+    .cta-content {
+      max-width: 600px;
+    }
+
+    /* --- TITRE & TEXTE --- */
+    .cta-content h2 {
+      font-size: 2rem;
+      margin-bottom: 15px;
+    }
+
+    .cta-content p {
+      font-size: 1.1rem;
+      margin-bottom: 30px;
+      opacity: 0.9;
+    }
+
+    /* --- BOUTON CTA --- */
+    .cta-button {
+      display: inline-block;
+      background-color: #fff;
+      color: #007bff;
+      font-weight: bold;
+      padding: 15px 30px;
+      border-radius: 50px;
+      text-decoration: none;
+      transition: all 0.3s ease;
+    }
+
+    .cta-button:hover {
+      background-color: #0056b3;
+      color: #fff;
+      transform: scale(1.05);
+    }
+
+    /* --- RESPONSIVE --- */
+    @media (max-width: 600px) {
+      .cta-content h2 {
+        font-size: 1.6rem;
       }
-    </style>
 
-    <h2 id="welcome" style="font-size: 2rem;"></h2>
+      .cta-button {
+        padding: 12px 25px;
+      }
+    }
 
-    <!-- NOUVELLE SECTION : Mes annonces -->
-    <h2>Mes annonces</h2>
-    <section id="mes-annonces" class="login">
-      <!-- Le contenu est injecté via JS -->
-    </section>
+    .lien {
+      color: inherit;
+      font-weight: bold;
+    }
 
-    <section class="logout">
-      Pour ajouter vos propres annonces, connectez-vous (c'est gratuit !).
-      <a id="loginBtn" href="sign-in.html">Se connecter</a> ou <a href="sign-up.html">créer un compte</a>
-    </section>
+  </style>
 
-    <h2>Dernières annonces</h2>
-    <section id="dernieres-annonces"></section>
+  <section class="cta-section">
+    <div class="cta-content">
+      <h2>Vous avez quelque chose à partager ?</h2>
+      <p>Publiez votre annonce gratuitement !<br>
+      <a href="sign-in.html?redirect=edit.html" class="lien">Connectez-vous</a> ou <a href="sign-up.html" class="lien">inscrivez-vous</a> pour publier une annonce !</p>
+      <a href="sign-up.html?redirect=edit.html" class="cta-button" id="publish">Publier une annonce</a>
+    </div>
+  </section>
 
-    <h2>Toutes les annonces</h2>
-    <section class="carte-section">
-      <div id="map"></div>
-      <div id="sidebar"></div>
+  <!-- Section Carte + Projet -->
+  <section class="map-project" style="max-width:1200px;margin:30px auto;padding:0 20px;display:grid;grid-template-columns:1fr 340px;gap:22px">
+    <div id="map" style="width:100%;height:380px;border-radius:12px;overflow:hidden;box-shadow:var(--shadow)"></div>
+    <div style="background:var(--card);padding:18px;border-radius:12px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:10px">
+      <h3 style="margin:0">À propos de ce projet</h3>
+      <p style="font-size:14px;color:var(--muted)">Ce prototype démontre un système d’annonces géolocalisées permettant d’explorer des biens à proximité. L’objectif est de proposer une plateforme moderne, intuitive et transparente.</p>
+      <p style="font-size:14px;color:var(--muted)">Les annonces sont affichées sur une carte interactive alimentée par OpenStreetMap et Leaflet. Cliquez sur un marqueur pour voir le détail !</p>
+      <p><a href="sign-in.html?redirect=index.html">Connectez-vous</a> ou <a href="sign-up.html?redirect=index.html">inscrivez-vous</a> pour publier une annonce !</p>
+    </div>
+  </section>
+
+  <main class="wrap">
+    <aside class="sidebar">
+      <div class="filters">
+        <h4>Catégories</h4>
+        <div class="categories" id="categoriesList"></div>
+      </div>
+      <hr style="margin:12px 0;border:none;border-top:1px solid #f0f0f5" />
+    </aside>
+
+    <section class="main">
+      <div class="tools">
+        <div class="count" id="count">-- annonces</div>
+        <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+          <label for="sort">Trier</label>
+          <select id="sort">
+            <option value="new">Plus récentes</option>
+            <option value="priceAsc">Prix ↑</option>
+            <option value="priceDesc">Prix ↓</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="listings" id="listings">
+        <!-- cards injected here -->
+      </div>
+
     </section>
   </main>
 
-  <!-- Modal formulaire (hidden by default) -->
-  <div id="modalBackdrop" class="modal-backdrop" role="dialog" aria-hidden="true">
-    <div class="modal" role="document">
-      <h3 id="modalTitle">Éditer une annonce</h3>
-      <div>
-        <label>Titre<input id="fieldTitle" type="text" /></label>
-        <label>Ville<input id="fieldCity" type="text" /></label>
-        <label>Description<textarea id="fieldDescription" rows="4"></textarea></label>
-        <div class="small-muted" id="geoStatus"></div>
-        <div class="actions">
-          <button class="btn secondary" id="cancelBtn">Annuler</button>
-          <button class="btn" id="saveBtn">Enregistrer</button>
-        </div>
-      </div>
-    </div>
-  </div>
+  <footer>
+    Prototype d'interface d'annonces
+  </footer>
 
-  <!-- Scripts Leaflet -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
-
-  <!-- Script principal -->
   <script>
-    // ids des annonces appartenant à l'utilisateur (séparés par ;)
-   
 
-    // tableaux globaux demandés
-    let data1 = []; // toutes les annonces (provenant de la feuille)
-    let data2 = []; // tableau secondaire dédié aux annonces de l'utilisateur (dupliquées)
 
-    // Helpers existants
-    function getAnnonceId(obj) {
-      return (obj.id ?? obj.ID ?? obj.Id ?? "").toString();
-    }
 
-    async function fetchSheetData() {
-      const spreadsheetId = "1sVCmgprkNQLroXlowU-Rp0PlUySAFZ331x3H5t3VT7A";
-      const sheetName = "posts";
-      const url = `https://script.google.com/macros/s/AKfycbwEZj9RKrO2c502VHhL8OaznlZJtHTLl_pOXRMeqOs0BOUaBEf-OGsGBBj-0_YNazBo/exec?spreadsheetId=${spreadsheetId}&sheetName=${sheetName}`;
-      try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error("Erreur lors de l'appel à la Web App Google");
-        return await response.json();
-      } catch (error) {
-        console.error("❌ Erreur fetchSheetData :", error);
-        return [];
-      }
-    }
-// --- VERSION ROBUSTE : buildData2FromData1 accepte une chaîne posts en second argument
-  function buildData2FromData1(allData, userPosts) {
-    // sécuriser l'accès : userPosts peut être undefined/null
-    const annonces_ID = (typeof userPosts === "string") ? userPosts : ((user && typeof user.posts === "string") ? user.posts : "");
-    if (!annonces_ID) return []; // pas d'annonces -> retourne tableau vide
 
-    const wantedIds = annonces_ID.split(";").map(s => s.trim()).filter(Boolean);
-    if (!wantedIds.length) return [];
 
-    const duplicates = allData
-      .filter(item => {
-        const id = getAnnonceId(item);
-        return id && wantedIds.includes(id);
-      })
-      .map(item => JSON.parse(JSON.stringify(item))); // clone profond pour ne pas affecter data1
-    return duplicates;
-  }
 
-    // affichage des 3 dernières (utilise data1)
-    function creerCarteAnnonce(annonce) {
-      return `
-        <div class="annonce-card">
-          <div>
-            <h3>${escapeHtml(annonce.title || "Sans titre")}</h3>
-            <p>${escapeHtml((annonce.description || "").slice(0, 200))}${(annonce.description && annonce.description.length>200) ? "…" : ""}</p>
-            <p>Proposé par : ${annonce.by}</p>
-            <p><a href="activity.html?src=${annonce.ID}" target="_blank">En savoir plus</a></p>
-          </div>
-          <p class="ville">${escapeHtml(annonce.city || "Lieu inconnu")}</p>
-        </div>
-      `;
-    }
 
-    // échappement basique pour éviter l'injection HTML
-    function escapeHtml(str) {
-      return String(str)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;");
-    }
 
-    function afficherDernieresAnnoncesFromData1() {
-      if (!data1.length) return;
-      const section = document.querySelector("#dernieres-annonces");
-      const dernieres = data1.slice(-3).reverse();
-      section.innerHTML = `<div class="annonces-container">${dernieres.map(creerCarteAnnonce).join("")}</div>`;
-    }
 
-    // ---------- ÉDITEUR (travaille uniquement sur data2) ----------
-    const mesSection = document.getElementById("mes-annonces");
-    // Modal éléments
-    const modalBackdrop = document.getElementById("modalBackdrop");
-    const modalTitle = document.getElementById("modalTitle");
-    const fieldTitle = document.getElementById("fieldTitle");
-    const fieldCity = document.getElementById("fieldCity");
-    const fieldDescription = document.getElementById("fieldDescription");
-    const geoStatus = document.getElementById("geoStatus");
-    const saveBtn = document.getElementById("saveBtn");
-    const cancelBtn = document.getElementById("cancelBtn");
 
-    let currentEditIndex = null; // index dans data2, null = création
 
-    // Génération d'ID : date+heure (ms) + nombre aléatoire 4 chiffres
-    function generateUniqueId() {
-      const base = Date.now();
-      const rand = Math.floor(Math.random() * 9000) + 1000; // 1000-9999
-      return "post"+base+rand;
-    }
 
-    // Géocodage simple via Nominatim (OpenStreetMap) : retourne {lat, lon} ou null
-    async function geocodeCity(city) {
-      if (!city || !city.trim()) return null;
-      const q = encodeURIComponent(city + ", France"); // tu peux enlever ", France" si multi-pays
-      const url = `https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1`;
-      try {
-        const resp = await fetch(url, {
-          headers: {
-            // Nominatim demande un User-Agent clairement identifiable, mais le navigateur envoie déjà un UA.
-            // Optionnel : "Accept-Language": "fr"
-          }
+
+    // =====================================================
+    // 🔁 Simulation de l'état de connexion (variable booléenne)
+    // =====================================================
+    // changez la valeur initiale pour simuler l'état (true = connecté, false = déconnecté)
+    let isLoggedIn = false;
+
+    const authActionsEl = document.getElementById('authActions');
+
+    function renderAuth() {
+      if (!authActionsEl) return;
+      if (!isLoggedIn) {
+        document.getElementById("publish").href = "sign-up.html?redirect=edit.html";
+        // utilisateur déconnecté : afficher Se connecter / S'inscrire
+        authActionsEl.innerHTML = `
+          <a class="auth-link" href="sign-in.html?redirect=index.html" id="linkSignIn">Se connecter</a>
+          <a class="auth-btn primary" href="sign-up.html?redirect=index.html" id="linkSignUp">S'inscrire</a>
+        `;
+        // prototypes : permettre au clic de "Se connecter" / "S'inscrire" de simuler une connexion
+        const signIn = document.getElementById('linkSignIn');
+        const signUp = document.getElementById('linkSignUp');
+        signIn && signIn.addEventListener('click', (e) => {
+         //e.preventDefault(); //isLoggedIn = true; renderAuth(); alert('Simulé : connecté');
+       });
+        signUp && signUp.addEventListener('click', (e) => { 
+          //e.preventDefault(); isLoggedIn = true; renderAuth(); alert('Simulé : inscrit et connecté'); 
         });
-        if (!resp.ok) return null;
-        const arr = await resp.json();
-        if (!arr || arr.length === 0) return null;
-        return { lat: parseFloat(arr[0].lat), lon: parseFloat(arr[0].lon) };
-      } catch (e) {
-        console.warn("géocodage échoué", e);
-        return null;
-      }
-    }
-
-    function renderMesAnnoncesUI() {
-      // Header + bouton créer
-      const headerHTML = `
-        <div class="mes-controls">
-          <div><strong>Mes annonces (${data2.length})</strong></div>
-          <div>
-            <button id="createAnnonceBtn" class="btn">+ Créer une annonce</button>
-          </div>
-        </div>
-      `;
-      // list
-      let listHTML = "";
-      if (data2.length === 0) {
-        listHTML = `<p>Aucune annonce dans votre espace. Cliquez sur "Créer une annonce" pour en ajouter.</p>`;
       } else {
-        listHTML = '<div class="annonces-container">';
-        data2.forEach((ann, idx) => {
-          listHTML += `
-            <div class="annonce-card">
-              <div>
-                <h3>${escapeHtml(ann.title || "Sans titre")}</h3>
-                <p>${escapeHtml((ann.description || "").slice(0,120))}${(ann.description && ann.description.length>120)?"…":""}</p>
-              </div>
-              <p class="ville">${escapeHtml(ann.city || "—")}</p>
-              <div class="annonce-actions">
-                <button class="btn secondary" data-action="edit" data-idx="${idx}">Modifier</button>
-                <button class="btn danger" data-action="delete" data-idx="${idx}">Supprimer</button>
-              </div>
-            </div>
-          `;
-        });
-        listHTML += '</div>';
-      }
-      mesSection.innerHTML = headerHTML + listHTML;
-
-      // bind events
-      const createBtn = document.getElementById("createAnnonceBtn");
-      if (createBtn) createBtn.addEventListener("click", () => openFormForCreate());
-
-      mesSection.querySelectorAll("[data-action]").forEach(btn => {
-        const idx = Number(btn.dataset.idx);
-        const action = btn.dataset.action;
-        btn.addEventListener("click", () => {
-          if (action === "edit") openFormForEdit(idx);
-          if (action === "delete") deleteAnnonce(idx);
-        });
+        document.getElementById("publish").href = "edit.html";
+        // utilisateur connecté : afficher Mes annonces / Se déconnecter
+        authActionsEl.innerHTML = `
+          <a class="auth-btn ghost" href="edit.html" id="myAdsBtn">Mes annonces</a>
+          <a class="auth-btn" id="logoutBtn">Se déconnecter</a>
+        `;
+        document.getElementById('logoutBtn').addEventListener('click', (e) => { e.preventDefault(); 
+          //isLoggedIn = false; renderAuth(); alert('Vous êtes déconnecté (simulation)');clearLoginCookie();
+          isLoggedIn = false; renderAuth();
+          clearLoginCookie();
       });
-    }
-
-    function openModal() {
-      modalBackdrop.style.display = "flex";
-      modalBackdrop.setAttribute("aria-hidden", "false");
-    }
-    function closeModal() {
-      modalBackdrop.style.display = "none";
-      modalBackdrop.setAttribute("aria-hidden", "true");
-      geoStatus.textContent = "";
-    }
-
-    function openFormForCreate() {
-      currentEditIndex = null;
-      modalTitle.textContent = "Créer une nouvelle annonce";
-      fieldTitle.value = "";
-      fieldCity.value = "";
-      fieldDescription.value = "";
-      openModal();
-    }
-
-    function openFormForEdit(idx) {
-      const ann = data2[idx];
-      currentEditIndex = idx;
-      modalTitle.textContent = "Modifier l'annonce";
-      fieldTitle.value = ann.title || "";
-      fieldCity.value = ann.city || "";
-      fieldDescription.value = ann.description || "";
-      openModal();
-    }
-
-    async function deleteAnnonce(idx) {
-      const ann = data2[idx];
-      const id = getAnnonceId(ann) || "(sans id)";
-      if (!confirm(`Supprimer cette annonce ?\nLa suppression de \"${ann.title || "—"}\" sera définitive !`)) return;
-
-      deleteRow(spreadsheetId, "posts", id);
-
-      user.posts = user.posts
-  .split(";")          // coupe en tableau : ["char1", "char2", "char5"]
-  .filter(el => el !== id) // retire "char2"
-  .join(";");          // recrée la chaîne
-
-        console.log(user);
-        await updateRow(spreadsheetId, "users", user.email, user);
-
-      data2.splice(idx, 1);
-      renderMesAnnoncesUI();
-    }
-
-    // sauvegarde (création ou modification)
-    saveBtn.addEventListener("click", async () => {
-      const title = fieldTitle.value.trim();
-      const city = fieldCity.value.trim();
-      const description = fieldDescription.value.trim();
-
-      if (!title) { alert("Le titre est requis."); return; }
-
-      geoStatus.textContent = "Géolocalisation de la ville en cours…";
-      saveBtn.disabled = true;
-      cancelBtn.disabled = true;
-
-      let geo = await geocodeCity(city);
-      if (!geo) {
-        geoStatus.textContent = "Géocodage indisponible pour cette ville — latitude/longitude non renseignées.";
-      } else {
-        geoStatus.textContent = `Ville localisée : ${geo.lat.toFixed(5)}, ${geo.lon.toFixed(5)}.`;
+        document.getElementById('myAdsBtn').addEventListener('click', (e) => { /* ici redirection réelle */ });
       }
-
-
-
-
-      if (currentEditIndex === null) {
-        // création
-        const newObj = {
-          // garder la structure minimale compatible avec data1
-          ID: generateUniqueId(),
-          title: title,
-          description: description,
-          city: city,
-          lat: geo ? geo.lat : "",
-          lon: geo ? geo.lon : "",
-          by: user.pseudo
-        };
-
-
-        //getRowById(spreadsheetId, "users", cookie_user)
-        await addRow(spreadsheetId, "posts", newObj);
-        user.posts+=";"+newObj.ID;
-        console.log(user);
-        await updateRow(spreadsheetId, "users", user.email, user);
-
-
-
-        data2.push(newObj);
-      } else {
-        // modification
-        const ann = data2[currentEditIndex];
-        ann.title = title;
-        ann.city = city;
-        ann.description = description;
-        if (geo) { ann.lat = geo.lat; ann.lon = geo.lon; }
-
-        console.log("enregistrement de :", ann);
-        await updateRow(spreadsheetId, "posts", ann.ID, ann);
-      }
-
-      saveBtn.disabled = false;
-      cancelBtn.disabled = false;
-      closeModal();
-      renderMesAnnoncesUI();
-    });
-
-    cancelBtn.addEventListener("click", () => {
-      closeModal();
-    });
-
-    // close modal on backdrop click
-    modalBackdrop.addEventListener("click", (e) => {
-      if (e.target === modalBackdrop) closeModal();
-    });
-
-    // ---------- CARTE (utilise data1, comme avant) ----------
-    async function initCarteFromData1() {
-      if (!data1.length) return;
-      const map = L.map("map").setView([46.8, 2.5], 6);
-      L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
-        attribution: '&copy; <a href="https://carto.com/">CARTO</a> | © OpenStreetMap contributors',
-        subdomains: "abcd",
-        maxZoom: 19
-      }).addTo(map);
-
-      const markersCluster = L.markerClusterGroup();
-      const sidebar = document.getElementById("sidebar");
-      sidebar.innerHTML = "";
-
-      for (const poi of data1) {
-        const lat = parseFloat(poi.lat);
-        const lon = parseFloat(poi.lon);
-        if (!lat || !lon) continue;
-        const marker = L.marker([lat, lon]).bindPopup(
-          `<strong>${escapeHtml(poi.title)}</strong><br>${escapeHtml(poi.description || "")}<br><em>${escapeHtml(poi.city || "")}</em>`
-        );
-        markersCluster.addLayer(marker);
-
-        const item = document.createElement("div");
-        item.className = "poi";
-        item.innerHTML = `<h3>${escapeHtml(poi.title)}</h3><p>${escapeHtml(poi.city || "")}</p><p>${escapeHtml(poi.description || "")}</p><p>Proposé par : ${poi.by}</p><p>
-            <a href="activity.html?src=${poi.ID}" target="_blank">En savoir plus</a></p>`;
-        item.addEventListener("click", () => {
-          map.setView([lat, lon], 12);
-          marker.openPopup();
-        });
-        sidebar.appendChild(item);
-      }
-
-      map.addLayer(markersCluster);
     }
 
+    // render initial auth
+    renderAuth();
+  </script>
+
+  <script>
 
 
+    const spreadsheetId = "1sVCmgprkNQLroXlowU-Rp0PlUySAFZ331x3H5t3VT7A";
 
+    async function Login() {
 
-
-
-    // ---------- INITIALISATION GLOBALE ----------
-    document.addEventListener("DOMContentLoaded", async () => {
-
-
+      console.log("Vérification de la connexion");
 
     let cookie_user = "";
     let cookie_password = "";
 
-    if (window.location.protocol === 'file:') {
-      
-  cookie_user = "gael.maignan@eivp-paris.fr";
-    cookie_password = "1234";
-    user = await getRowById(spreadsheetId, "users", cookie_user);
-    const welcome_titre = document.getElementById("welcome");
-    welcome_titre.textContent = "Bonjour " + user.pseudo + " !";
-
-    document.querySelectorAll('.logout').forEach(el => {
-  el.style.display = 'none';
-});
-
-            document.querySelectorAll('.login').forEach(el => {
-  el.style.display = 'block';});
+    const localLogin = true;
 
 
-}
-
-    // --- Vérification du cookie de connexion ---
-    const loginBtn = document.getElementById("loginBtn");
-    
-    const loginInfo = getLoginCookie();
+        const loginInfo = getLoginCookie();
     if (loginInfo) {
         console.log("✅ Cookie détecté :", loginInfo);
         cookie_user = loginInfo.email;
@@ -463,70 +358,179 @@ const spreadsheetId = "1sVCmgprkNQLroXlowU-Rp0PlUySAFZ331x3H5t3VT7A";
         if(user["password"] != cookie_password){
           user = null;
             console.log("le mot de passe n'est plus à jour dans le cookie !");
+            clearLoginCookie(); // Supression du cookie
         }
         else {
-            console.log("Bonjour :", user);
-            // Texte de bienvenue
-            const welcome_titre = document.getElementById("welcome");
-            welcome_titre.textContent = "Bonjour " + user.pseudo + " !";
 
-            document.querySelectorAll('.login').forEach(el => {
-  el.style.display = 'block';});
-
-            document.querySelectorAll('.logout').forEach(el => {
-  el.style.display = 'none';});
         }
-    }
-    else if(user ==null) {
-      document.querySelectorAll('.logout').forEach(el => {
-  el.style.display = 'block';});
-       console.log("Pas de Cookie de connexion !", user);
-    }
+    }else if (window.location.protocol === 'file:' && localLogin == true) {
+
+      openPageLoader("Connexion en cours");
+      
+  cookie_user = "gael.maignan@eivp-paris.fr";
+  try {
+        user = await getRowById(spreadsheetId, "users", cookie_user);
+  }catch (error) {
+    console.error("Erreur lors de la récupération :", error);
+  } finally {
+    closePageLoader();
+    // 👉 Toujours exécuté, même si erreur
+  }
+
+  }
+
+  if(user){
+
+    console.log("Utilisateur:",user);
+isLoggedIn = true;
+    renderAuth();
+  }
+
+
+}
+ Login();
+ 
+
+
+ async function chargement() {
+
+  
+const annonces = await fetchSheetData2();
+
+      
 
 
 /*
-    if (loginInfo || forceConnexion == true) {
-        console.log("✅ Cookie détecté :", loginInfo);
+    // Tableau d'annonces — données locales
+    const annonces = [
+      {id:1,title:"Canapé 3 places en velours",price:220,location:"Paris 11",date:"2025-10-28",category:"Meubles", image:"https://picsum.photos/seed/sofa/600/400" ,desc:"Très bon état, 2 coussins fournis.", lat:48.863, lon:2.379},
+      {id:2,title:"Vélo de ville semi-neuf",price:140,location:"Lyon",date:"2025-10-20",category:"Vélos", image:"https://picsum.photos/seed/bike/600/400",desc:"21 vitesses, révisé récemment.", lat:45.764, lon:4.835},
+      {id:3,title:"Appartement T2 centre",price:820,location:"Marseille",date:"2025-09-15",category:"Immobilier", image:"https://picsum.photos/seed/flat/600/400",desc:"45m², proche commerces.", lat:43.296, lon:5.369},
+      {id:4,title:"Ordinateur portable i5 8GB",price:280,location:"Bordeaux",date:"2025-08-01",category:"Informatique", image:"https://picsum.photos/seed/laptop/600/400",desc:"SSD 256GB, batterie OK.", lat:44.837, lon:-0.579},
+      {id:5,title:"Table à manger chêne masssif",price:350,location:"Nice",date:"2025-07-03",category:"Meubles", image:"https://picsum.photos/seed/table/600/400",desc:"Dimensions 180x90.", lat:43.710, lon:7.262},
+      {id:6,title:"Guitare acoustique Yamaha",price:120,location:"Rennes",date:"2025-06-12",category:"Musique", image:"https://picsum.photos/seed/guitar/600/400",desc:"Cordes neuves, housse incluse.", lat:48.117, lon:-1.677},
+      {id:7,title:"Machine à coudre Singer",price:60,location:"Nantes",date:"2025-05-05",category:"Maison", image:"https://picsum.photos/seed/singer/600/400",desc:"Fonctionnelle, livrée avec accessoires.", lat:47.218, lon:-1.553},
+      {id:8,title:"PS5 + 2 manettes",price:480,location:"Paris 18",date:"2025-11-01",category:"Jeux vidéo", image:"https://picsum.photos/seed/ps5/600/400",desc:"Boîte d'origine, 1To SSD ajouté.", lat:48.892, lon:2.344}
+    ];*/
 
-        getRowById(spreadsheetId, "users", cookie_user)
-  .then(data => {
+    // Initialisation des catégories
+    const categories = Array.from(new Set(annonces.map(a=>a.category))).sort();
+    const categoriesList = document.getElementById('categoriesList');
+    const categorySelect = document.getElementById('categorySelect');
 
-        
+    categories.forEach(cat=>{
+      const btn = document.createElement('button');
+      btn.className = 'cat';
+      btn.textContent = cat;
+      btn.addEventListener('click', ()=>{ document.getElementById('categorySelect').value = cat; render(); });
+      categoriesList.appendChild(btn);
 
-  })
-  .catch(err => console.error("Erreur :", err));
-        
-
-      
-    } else {
-        console.log("❌ Aucun cookie de connexion trouvé");
-        // → renvoyer vers la page de login si nécessaire
-        // window.location.href = "/login.html";
-    }*/
-
-
-      // 1) récupérer data1
-      const fetched = await fetchSheetData();
-      data1 = Array.isArray(fetched) ? fetched : [];
-
-      // 2) construire data2 juste après (dupliquer uniquement les annonces de l'utilisateur)
-      data2 = buildData2FromData1(data1);
-
-      // 3) afficher interfaces
-      afficherDernieresAnnoncesFromData1();
-      renderMesAnnoncesUI();
-      initCarteFromData1();
+      const opt = document.createElement('option'); opt.value = cat; opt.textContent = cat; categorySelect.appendChild(opt);
     });
 
-    /***** Notes importantes pour la suite (non bloquant) *****
-     - Actuellement toutes les modifications / créations / suppressions se font uniquement côté client (data2).
-     - Si tu veux **persister** ces changements sur la feuille Google Sheets, il faut :
-       1) ajouter une WebApp Google Apps Script côté serveur qui accepte POST pour créer / update / delete,
-       2) appeler cette WebApp depuis le client (fetch POST).
-     - Si tu veux que la carte reflète les nouvelles annonces créées par l'utilisateur, il faut soit :
-       - écrire les annonces créées dans la feuille (persistence) puis recharger data1, soit
-       - étendre la carte pour accepter en plus data2 (actuellement je l'ai laissé isolé pour éviter d'interférer).
-    ***********************************************************/
+    // Fonctions d'affichage
+    const listingsEl = document.getElementById('listings');
+    const countEl = document.getElementById('count');
+
+    function formatPrice(p){ return p.toLocaleString('fr-FR') + ' €'; }
+
+    function createCard(a){
+      const div = document.createElement('article'); div.className = 'card';
+      div.innerHTML = `
+        <img src="${a.image}" alt="${escapeHtml(a.title)}" loading="lazy" />
+        <div class="card-body">
+          <div class="badges"><span class="badge">${escapeHtml(a.category)}</span><span class="badge">${escapeHtml(a.location)}</span></div>
+          <div class="title">${escapeHtml(a.title)}</div>
+          <div class="meta"><a class="price">Par ${a.by}</a></div><!--<div class="price">${formatPrice(a.price)}</div>--><div style="font-size:12px;color:var(--muted)">${a.date}</div></div>
+        </div>
+      `;
+      div.addEventListener('click', ()=>showDetail(a, true));
+      return div;
+    }
+
+    function escapeHtml(text){
+      return (text||'').replace(/[&<>"]+/g, m=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+    }
+
+    function showDetail(a, redirect = false){
+      if (redirect) {
+       window.open("info.html", "_blank");
+      }
+      // simple modal-like detail (alert for prototype)
+      //alert(`${a.title}\n\n${a.desc}\n\nPrix: ${formatPrice(a.price)}\nLieu: ${a.location}`);
+    }
+
+    function render(){
+      const q = (document.getElementById('q').value||'').trim().toLowerCase();
+      const cat = document.getElementById('categorySelect').value;
+      const sort = document.getElementById('sort').value;
+
+      let filtered = annonces.filter(a=>{
+        const matchesQ = q === '' || a.title.toLowerCase().includes(q) || a.desc.toLowerCase().includes(q) || a.location.toLowerCase().includes(q);
+        const matchesCat = !cat || a.category === cat;
+        return matchesQ && matchesCat;
+      });
+
+      filtered.sort((x,y)=> new Date(y.date) - new Date(x.date));
+
+      listingsEl.innerHTML = '';
+      if(filtered.length === 0){
+        listingsEl.innerHTML = '<div style="padding:24px;background:white;border-radius:12px;box-shadow:var(--shadow)">Aucune annonce trouvée.</div>';
+      } else {
+        filtered.forEach(a=>listingsEl.appendChild(createCard(a)));
+      }
+      countEl.textContent = `${filtered.length} annonce${filtered.length>1?'s':''}`;
+    }
+
+    // Events
+    document.getElementById('searchBtn').addEventListener('click', render);
+    document.getElementById('q').addEventListener('keydown', (e)=>{ if(e.key === 'Enter') render(); });
+    document.getElementById('sort').addEventListener('change', render);
+
+    // Render initial
+    render();
+
+
+    // ==========================
+    // 🗺️ Initialisation de la carte
+    // ==========================
+    const map = L.map('map').setView([46.6, 2.4], 6);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+
+    // Marqueurs à partir des annonces
+    annonces.forEach(a => {
+      const marker = L.marker([a.lat, a.lon]).addTo(map);
+
+      marker.on('click', () => {
+        // Popup affichée
+        const popupContent = `
+          <strong>${escapeHtml(a.title)} (${escapeHtml(a.location)})</strong><br>
+          <br>
+          ${a.desc}
+          <br>
+          <a href="info.html?id=${a.id}">En savoir plus</a>
+        `;
+        marker.bindPopup(popupContent).openPopup();
+
+        // Option C : déclenche le détail d'annonce
+        showDetail(a);
+      });
+    });
+}
+ chargement();
+ 
+
+
+  </script>
+
+
+
+  <script>
+
   </script>
 </body>
 </html>

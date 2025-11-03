@@ -84,9 +84,15 @@
 
             setLoginCookie(email, password);
 
-            setTimeout(() => {
+            /*setTimeout(() => {
         window.location.href = "index.html";
-      }, 1500);
+      }, 1500);*/
+
+            const redirect = new URLSearchParams(window.location.search).get("redirect");
+//if (redirect && redirect.startsWith("https://mon-site.com")) { (sécurisé)
+if (redirect) {
+  window.location.href = redirect; // Redirige vers la valeur passée en paramètre
+}
           })
           .catch(err => {
             console.error("Erreur :", err);
